@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Tournament operations workspace">
+  <title>Bracket | Tournament Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="toast" class="toast" role="status"></div>
+  <section id="auth-view" class="auth-shell">
+    <div class="auth-intro"><div class="mark">B</div><p class="eyebrow">Tournament operations</p><h1>Run every round with confidence.</h1><p class="lede">One calm workspace for organizers, participants, brackets, and results.</p></div>
+    <div class="auth-panel"><div class="tab-row"><button class="tab active" data-auth="login">Sign in</button><button class="tab" data-auth="register">Create account</button></div>
+      <form id="auth-form"><h2 id="auth-title">Welcome back</h2><p id="auth-subtitle" class="muted">Sign in to manage your tournaments.</p><label>Username<input id="username" required maxlength="50" autocomplete="username"></label><label id="email-field" class="hidden">Email<input id="email" type="email" maxlength="120" autocomplete="email"></label><label>Password<input id="password" type="password" minlength="8" required autocomplete="current-password"></label><label id="organizer-field" class="check hidden"><input id="organizer" type="checkbox"> Register as an organizer</label><button class="button primary wide" type="submit" id="auth-submit">Sign in</button><p id="auth-error" class="form-error"></p></form>
+    </div>
+  </section>
+  <section id="app-view" class="app-shell hidden">
+    <aside class="sidebar"><div class="brand"><span class="mark small">B</span><span>Bracket</span></div><div class="side-label">Workspace</div><button class="nav-item active" data-page="dashboard"><span>01</span> Tournaments</button><button class="nav-item" data-page="notifications"><span>02</span> Notifications <b id="notification-count"></b></button><div class="sidebar-bottom"><div class="user-chip"><div id="user-initial" class="avatar">U</div><div><strong id="user-name">User</strong><small id="user-role">USER</small></div></div><button id="logout" class="text-button">Sign out</button></div></aside>
+    <main class="main"><header class="topbar"><div><p class="eyebrow">Operations hub</p><h1 id="page-title">Tournaments</h1></div><button id="create-toggle" class="button primary">+ New tournament</button></header><div id="app-content"></div></main>
+  </section>
+  <script src="app.js"></script>
+</body>
+</html>
