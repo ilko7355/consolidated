@@ -1,0 +1,16 @@
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\config\AdminAccountInitializerTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\config\ParticipantSchemaGuardTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\config\SchemaConfigurationTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\entity\ParticipantConcurrentHttpRequestIntegrationTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\entity\ParticipantMySqlIntegrationTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\entity\ParticipantUniqueConstraintTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\entity\TournamentGroupDeletionMySqlIntegrationTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\exception\GlobalExceptionHandlerTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\security\SecurityAuthorizationTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\service\AuthServiceSecurityTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\service\BracketGeneratorTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\service\NotificationFlowTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\service\RankingCalculatorTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\service\RankingTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\service\TournamentServiceTest.java
+C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\test\java\com\ilko\tournament\validation\RequestValidationTest.java
