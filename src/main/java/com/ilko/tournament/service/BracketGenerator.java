@@ -60,7 +60,7 @@ public class BracketGenerator {
                                                    Consumer<List<TournamentMatch>> persist) {
         List<TournamentMatch> all = new ArrayList<>();
         for (TournamentGroup group : groups) {
-            all.addAll(generateRoundRobin(tournament, group, group.getParticipants(), persist));
+           all.addAll(generateRoundRobin(tournament, group, new ArrayList<>(group.getParticipants()), persist));
         }
         return all;
     }
