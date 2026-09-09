@@ -2,6 +2,7 @@ package com.ilko.tournament.mapper;
 
 import com.ilko.tournament.dto.MatchResponse;
 import com.ilko.tournament.dto.ParticipantResponse;
+import com.ilko.tournament.dto.TournamentListProjection;
 import com.ilko.tournament.dto.TournamentResponse;
 import com.ilko.tournament.entity.Participant;
 import com.ilko.tournament.entity.Tournament;
@@ -14,6 +15,12 @@ public final class TournamentMapper {
         return new TournamentResponse(tournament.getId(), tournament.getName(), tournament.getDescription(),
                 tournament.getFormat().name(), tournament.getStatus().name(), tournament.getStartDate(),
                 tournament.getEndDate(), tournament.getOrganizer().getUsername(), tournament.getParticipants().size());
+    }
+
+    public static TournamentResponse toResponse(TournamentListProjection projection) {
+        return new TournamentResponse(projection.id(), projection.name(), projection.description(),
+                projection.format().name(), projection.status().name(), projection.startDate(),
+                projection.endDate(), projection.organizer(), Math.toIntExact(projection.participantCount()));
     }
 
     public static ParticipantResponse toResponse(Participant participant) {

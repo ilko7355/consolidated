@@ -24,6 +24,7 @@ public class TournamentMatch {
     private Integer score1;
     private Integer score2;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private MatchStatus status = MatchStatus.PENDING;
+    
     private LocalDateTime scheduledTime;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "next_match_id") private TournamentMatch nextMatch;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "group_id") private TournamentGroup group;

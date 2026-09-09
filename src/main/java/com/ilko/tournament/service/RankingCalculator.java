@@ -21,6 +21,8 @@ import java.util.Set;
  * it must never be duplicated or re-implemented elsewhere.
  *
  * GROUPS ranking order: most wins first, then best score difference, then participant id.
+ * Points (3 per win, 1 per draw, 0 per loss) are reported alongside the standings but are not
+ * themselves the sort key - wins remain the primary ranking criterion, unchanged by this.
  *
  * ELIMINATION ranking order additionally sorts first by how far each participant progressed
  * in the bracket (round reached before elimination, or "champion" for the winner of the final),
@@ -35,6 +37,7 @@ public class RankingCalculator {
         String name;
         int played;
         int wins;
+        int draws;
         int losses;
         int scoreFor;
         int scoreAgainst;
@@ -50,7 +53,8 @@ public class RankingCalculator {
 
         for (TournamentMatch match : matches) {
             // Only fully-recorded, real results count. Byes (no scores) and unfinished matches are correctly excluded.
-            if (match.getStatus() != MatchStatus.COMPLETED || match.getScore1() == null || match.getScore2() == null || match.getWinner() == null) {
+            // A draw (real scores, no winner) DOES count - see the win/draw/loss tally below.
+            if (match.getStatus() != MatchStatus.COMPLETED || match.getScore1() == null || match.getScore2() == null) {
                 continue;
             }
             Stats first = stats.get(match.getParticipant1().getId());
@@ -64,7 +68,10 @@ public class RankingCalculator {
             second.scoreFor += match.getScore2();
             second.scoreAgainst += match.getScore1();
 
-            if (match.getWinner().getId().equals(match.getParticipant1().getId())) {
+            if (match.getWinner() == null) {
+                first.draws++;
+                second.draws++;
+            } else if (match.getWinner().getId().equals(match.getParticipant1().getId())) {
                 first.wins++;
                 second.losses++;
             } else {
@@ -88,7 +95,7 @@ public class RankingCalculator {
             Long participantId = ordered.get(index);
             Stats s = stats.get(participantId);
             int scoreDiff = scoreDifference(s);
-            return new RankingResponse(participantId, s.name, s.played, s.wins, s.losses, scoreDiff, s.wins * 3, index + 1);
+            return new RankingResponse(participantId, s.name, s.played, s.wins, s.draws, s.losses, scoreDiff, s.wins * 3 + s.draws, index + 1);
         }).toList();
     }
 

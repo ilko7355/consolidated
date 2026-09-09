@@ -8,6 +8,7 @@ import com.ilko.tournament.enums.MatchStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -60,13 +61,13 @@ public class BracketGenerator {
                                                    Consumer<List<TournamentMatch>> persist) {
         List<TournamentMatch> all = new ArrayList<>();
         for (TournamentGroup group : groups) {
-           all.addAll(generateRoundRobin(tournament, group, new ArrayList<>(group.getParticipants()), persist));
+            all.addAll(generateRoundRobin(tournament, group, group.getParticipants(), persist));
         }
         return all;
     }
 
     private List<TournamentMatch> generateRoundRobin(Tournament tournament, TournamentGroup group,
-                                                    List<Participant> participants, Consumer<List<TournamentMatch>> persist) {
+                                                    Collection<Participant> participants, Consumer<List<TournamentMatch>> persist) {
         List<Participant> roster = new ArrayList<>(participants);
         if (roster.size() % 2 != 0) {
             roster.add(null);

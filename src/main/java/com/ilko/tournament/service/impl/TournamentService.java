@@ -32,7 +32,7 @@ public class TournamentService implements TournamentServiceApi {
         if (request.endDate().isBefore(request.startDate())) throw new BusinessException("End date cannot be before start date");
         Tournament tournament = new Tournament(); tournament.setName(request.name()); tournament.setDescription(request.description()); tournament.setFormat(request.format()); tournament.setStartDate(request.startDate()); tournament.setEndDate(request.endDate()); tournament.setOrganizer(user(authentication)); return response(tournaments.save(tournament));
     }
-    @Transactional(readOnly = true) public List<TournamentResponse> list() { return tournaments.findAllForList().stream().map(this::response).toList(); }
+    @Transactional(readOnly = true) public List<TournamentResponse> list() { return tournaments.findAllForList().stream().map(TournamentMapper::toResponse).toList(); }
     @Transactional(readOnly = true) public Tournament get(Long id) { return tournaments.findById(id).orElseThrow(() -> new ResourceNotFoundException("Tournament not found: " + id)); }
     @Transactional(readOnly = true) public TournamentResponse getResponse(Long id) { return response(get(id)); }
     @Transactional public TournamentResponse update(Long id, UpdateTournamentRequest request, Authentication authentication) { Tournament tournament = get(id); requireOwner(tournament, authentication); if (request.endDate().isBefore(request.startDate())) throw new BusinessException("End date cannot be before start date"); if (tournament.getStatus() != TournamentStatus.REGISTRATION) throw new BusinessException("Only registration tournaments can be updated"); tournament.setName(request.name()); tournament.setDescription(request.description()); tournament.setStartDate(request.startDate()); tournament.setEndDate(request.endDate()); return response(tournaments.save(tournament)); }
@@ -149,13 +149,14 @@ public class TournamentService implements TournamentServiceApi {
         if (request.score1() < 0 || request.score2() < 0) {
             throw new BusinessException("Scores cannot be negative");
         }
-        if (request.score1().equals(request.score2())) {
+        if (request.score1().equals(request.score2()) && tournament.getFormat() != TournamentFormat.GROUPS) {
             throw new BusinessException("Ties are not supported - one participant must have a higher score");
         }
 
         match.setScore1(request.score1());
         match.setScore2(request.score2());
-        Participant winner = request.score1() > request.score2() ? match.getParticipant1() : match.getParticipant2();
+        boolean isDraw = request.score1().equals(request.score2());
+        Participant winner = isDraw ? null : (request.score1() > request.score2() ? match.getParticipant1() : match.getParticipant2());
         match.setWinner(winner);
         match.setStatus(MatchStatus.COMPLETED);
 
@@ -201,6 +202,13 @@ public class TournamentService implements TournamentServiceApi {
     // tournament completed) and carries real data pulled from the match/tournament entities involved.
     // Each creation path is guarded by an existsBy... check so the same event never notifies the same
     // person twice, even if this code path is somehow triggered again for the same match/tournament.
+    //
+    // "Upcoming match" notifications (notifyUpcomingMatch/notifyParticipantUpcoming below) satisfy the
+    // "notifications for upcoming matches" requirement by firing the moment a match becomes READY
+    // (both participants known and the match is playable) - not by any calendar date/time. This is
+    // deliberate: TournamentMatch.scheduledTime currently has no organizer/admin-facing way to be set
+    // (see its Javadoc), so a time-based trigger would never fire. scheduleSuffix() below already
+    // degrades gracefully to "date/time to be announced" for that reason.
 
     private static final DateTimeFormatter NOTIFICATION_DATE_FORMAT = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm");
 
@@ -233,10 +241,11 @@ public class TournamentService implements TournamentServiceApi {
     private void notifyMatchResult(Tournament tournament, TournamentMatch match, Participant winner) {
         AppUser organizer = tournament.getOrganizer();
         if (notifications.existsByRecipientAndMatchAndType(organizer, match, NotificationType.MATCH_RESULT)) return;
-        String message = "Result recorded in \"%s\": Round %d, Match %d - %s %d : %d %s. Winner: %s".formatted(
+        String outcome = winner != null ? "Winner: " + displayName(winner) : "Draw";
+        String message = "Result recorded in \"%s\": Round %d, Match %d - %s %d : %d %s. %s".formatted(
                 tournament.getName(), match.getRoundNumber(), match.getMatchNumber(),
                 displayName(match.getParticipant1()), match.getScore1(), match.getScore2(),
-                displayName(match.getParticipant2()), displayName(winner));
+                displayName(match.getParticipant2()), outcome);
         saveNotification(organizer, message, NotificationType.MATCH_RESULT, tournament, match);
     }
 
