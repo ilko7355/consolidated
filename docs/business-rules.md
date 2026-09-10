@@ -22,3 +22,12 @@ For $n$ participants, the padded bracket contains $2^k - 1$ matches where $2^k$ 
 `RankingCalculator` initializes zeroed statistics for every registered participant, processes completed matches once, then sorts by wins descending, losses ascending, and participant ID ascending. Points are three per win, matching the existing application rule. Incomplete matches and matches without a winner are ignored.
 
 For $p$ participants and $m$ matches, aggregation is $O(p + m)$ and sorting is $O(p \log p)$. Empty participant input returns an empty ranking. The deterministic ID tie-breaker ensures repeatable output.
+### 4. Single Elimination Tournament Bracket & BYE Rules
+- Bracket size is calculated by rounding the participant count $N$ up to the nearest power of two ($2^k$).
+- When $N < 2^k$, unassigned bracket slots represent BYEs.
+- When a match has exactly one participant (`p1 != null ^ p2 != null`), it automatically resolves as `COMPLETED` and advances the participant to the next round.
+- When a match has no participants at all (`null vs null` due to multiple BYEs), it is immediately marked as `COMPLETED` with `winner = null` and advances `null` to the next round.
+- This ensures:
+  1. No artificial `null vs null` matches remain permanently `PENDING`.
+  2. A participant whose next opponent would come from an empty branch automatically receives a cascading BYE upon winning their preceding match.
+  3. The tournament transitions to `COMPLETED` and issues final-result notifications when all matches reach `COMPLETED`.

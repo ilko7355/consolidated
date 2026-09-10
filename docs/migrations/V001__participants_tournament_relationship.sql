@@ -94,3 +94,15 @@ SELECT @unlinked AS unresolved_participants,
        @duplicates AS duplicate_names,
        @legacy_issues AS invalid_legacy_links,
        @ready AS migration_completed;
+-- Drop the legacy Many-to-Many join table
+DROP TABLE IF EXISTS group_participants;
+
+-- Add direct group reference foreign key to participants table
+ALTER TABLE participants 
+    ADD COLUMN group_id BIGINT NULL,
+    ADD CONSTRAINT fk_participant_group 
+        FOREIGN KEY (group_id) REFERENCES tournament_groups(id) 
+        ON DELETE SET NULL;
+
+-- Create an index for performance on group lookups
+CREATE INDEX idx_participants_group_id ON participants(group_id);

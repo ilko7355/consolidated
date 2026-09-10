@@ -5,8 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "tournament_groups", indexes = {
@@ -25,12 +25,6 @@ public class TournamentGroup {
     @Column(nullable = false, length = 50)
     private String name;
 
-    @ManyToMany
-    @JoinTable(
-            name = "group_participants",
-            joinColumns = @JoinColumn(name = "group_id"),
-            inverseJoinColumns = @JoinColumn(name = "participant_id"),
-            uniqueConstraints = @UniqueConstraint(columnNames = {"group_id", "participant_id"})
-    )
-    private Set<Participant> participants = new LinkedHashSet<>();
+    @OneToMany(mappedBy = "group", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    private List<Participant> participants = new ArrayList<>();
 }

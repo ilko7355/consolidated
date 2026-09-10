@@ -13,11 +13,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
-@Service @RequiredArgsConstructor
+@Service
+@RequiredArgsConstructor
 public class TournamentService implements TournamentServiceApi {
     private final BracketGenerator bracketGenerator;
     private final RankingCalculator rankingCalculator;
@@ -28,8 +29,11 @@ public class TournamentService implements TournamentServiceApi {
     private final TournamentGroupRepository groups;
     private final NotificationRepository notifications;
 
-    @Transactional public TournamentResponse create(CreateTournamentRequest request, Authentication authentication) {
-        if (request.endDate().isBefore(request.startDate())) throw new BusinessException("End date cannot be before start date");
+    @Transactional
+    public TournamentResponse create(CreateTournamentRequest request, Authentication authentication) {
+        if (request.endDate().isBefore(request.startDate())) {
+            throw new BusinessException("End date cannot be before start date");
+        }
         Tournament tournament = new Tournament(); 
         tournament.setName(request.name()); 
         tournament.setDescription(request.description()); 
@@ -40,23 +44,31 @@ public class TournamentService implements TournamentServiceApi {
         return response(tournaments.save(tournament));
     }
 
-    @Transactional(readOnly = true) public List<TournamentResponse> list() { 
+    @Transactional(readOnly = true)
+    public List<TournamentResponse> list() { 
         return tournaments.findAllForList().stream().map(TournamentMapper::toResponse).toList(); 
     }
 
-    @Transactional(readOnly = true) public Tournament get(Long id) { 
+    @Transactional(readOnly = true)
+    public Tournament get(Long id) { 
         return tournaments.findById(id).orElseThrow(() -> new ResourceNotFoundException("Tournament not found: " + id)); 
     }
 
-    @Transactional(readOnly = true) public TournamentResponse getResponse(Long id) { 
+    @Transactional(readOnly = true)
+    public TournamentResponse getResponse(Long id) { 
         return response(get(id)); 
     }
 
-    @Transactional public TournamentResponse update(Long id, UpdateTournamentRequest request, Authentication authentication) { 
+    @Transactional
+    public TournamentResponse update(Long id, UpdateTournamentRequest request, Authentication authentication) { 
         Tournament tournament = get(id); 
         requireOwner(tournament, authentication); 
-        if (request.endDate().isBefore(request.startDate())) throw new BusinessException("End date cannot be before start date"); 
-        if (tournament.getStatus() != TournamentStatus.REGISTRATION) throw new BusinessException("Only registration tournaments can be updated"); 
+        if (request.endDate().isBefore(request.startDate())) {
+            throw new BusinessException("End date cannot be before start date");
+        }
+        if (tournament.getStatus() != TournamentStatus.REGISTRATION) {
+            throw new BusinessException("Only registration tournaments can be updated"); 
+        }
         tournament.setName(request.name()); 
         tournament.setDescription(request.description()); 
         tournament.setStartDate(request.startDate()); 
@@ -64,19 +76,22 @@ public class TournamentService implements TournamentServiceApi {
         return response(tournaments.save(tournament)); 
     }
 
-    @Transactional public void delete(Long id, Authentication authentication) { 
+    @Transactional
+    public void delete(Long id, Authentication authentication) { 
         Tournament tournament = get(id); 
         requireOwner(tournament, authentication); 
-        if (tournament.getStatus() != TournamentStatus.REGISTRATION) throw new BusinessException("Only registration tournaments can be deleted"); 
+        if (tournament.getStatus() != TournamentStatus.REGISTRATION) {
+            throw new BusinessException("Only registration tournaments can be deleted"); 
+        }
         tournament.getParticipants().clear(); 
         tournaments.delete(tournament); 
     }
 
-    @Transactional public ParticipantResponse registerParticipant(Long id, ParticipantRequest request, Authentication authentication) {
+    @Transactional
+    public ParticipantResponse registerParticipant(Long id, ParticipantRequest request, Authentication authentication) {
         Tournament tournament = get(id); 
         requireOwner(tournament, authentication); 
         
-        // ЗАЩИТА: Не може да се добавят хора, ако турнирът е започнал
         if (tournament.getStatus() != TournamentStatus.REGISTRATION) {
             throw new BusinessException("Registration is closed. Tournament is already in progress or completed.");
         }
@@ -89,7 +104,6 @@ public class TournamentService implements TournamentServiceApi {
         participant.setName(request.name());
         participant.setTournament(tournament);
 
-        // ЗАЩИТА: Проверка дали потребителят съществува в системата
         if (request.username() != null && !request.username().isBlank()) {
             AppUser linkedAccount = users.findByUsername(request.username().trim())
                     .orElseThrow(() -> new ResourceNotFoundException("User not found: " + request.username()));
@@ -101,24 +115,31 @@ public class TournamentService implements TournamentServiceApi {
         return participantResponse(saved);
     }
 
-    @Transactional(readOnly = true) public List<ParticipantResponse> registered(Long id) { 
+    @Transactional(readOnly = true)
+    public List<ParticipantResponse> registered(Long id) { 
         return get(id).getParticipants().stream().map(this::participantResponse).toList(); 
     }
 
-    @Transactional(readOnly = true) public List<GroupResponse> groups(Long id) {
+    @Transactional(readOnly = true)
+    public List<GroupResponse> groups(Long id) {
         Tournament tournament = get(id);
-        if (tournament.getFormat() != TournamentFormat.GROUPS) throw new BusinessException("Groups are only available for GROUPS tournaments");
+        if (tournament.getFormat() != TournamentFormat.GROUPS) {
+            throw new BusinessException("Groups are only available for GROUPS tournaments");
+        }
         return groups.findByTournamentIdOrderByNameAsc(id).stream().map(this::groupResponse).toList();
     }
 
-    @Transactional public GroupResponse createGroup(Long id, CreateGroupRequest request, Authentication authentication) {
+    @Transactional
+    public GroupResponse createGroup(Long id, CreateGroupRequest request, Authentication authentication) {
         Tournament tournament = get(id);
         requireOwner(tournament, authentication);
         requireGroupTournament(tournament);
         requireRegistration(tournament);
         
         String name = request.name().trim();
-        if (groups.findByTournamentIdAndName(id, name).isPresent()) throw new ConflictException("A group with that name already exists");
+        if (groups.findByTournamentIdAndName(id, name).isPresent()) {
+            throw new ConflictException("A group with that name already exists");
+        }
         
         TournamentGroup group = new TournamentGroup();
         group.setTournament(tournament);
@@ -128,7 +149,8 @@ public class TournamentService implements TournamentServiceApi {
         return groupResponse(saved);
     }
 
-    @Transactional public GroupResponse assignParticipant(Long tournamentId, Long groupId, Long participantId, Authentication authentication) {
+   @Transactional
+    public GroupResponse assignParticipant(Long tournamentId, Long groupId, Long participantId, Authentication authentication) {
         Tournament tournament = get(tournamentId);
         requireOwner(tournament, authentication);
         requireGroupTournament(tournament);
@@ -142,14 +164,19 @@ public class TournamentService implements TournamentServiceApi {
             throw new BusinessException("Participant does not belong to this tournament");
         }
 
-        // Новата логика: задаваме групата директно на участника (Many-to-One)
+        // Idempotency check: assigning to the same group is a no-op
+        if (participant.getGroup() != null && participant.getGroup().getId().equals(groupId)) {
+            return groupResponse(target);
+        }
+
         participant.setGroup(target);
         participants.save(participant);
         
         return groupResponse(target);
     }
 
-    @Transactional public void removeParticipant(Long tournamentId, Long groupId, Long participantId, Authentication authentication) {
+    @Transactional
+    public void removeParticipant(Long tournamentId, Long groupId, Long participantId, Authentication authentication) {
         Tournament tournament = get(tournamentId);
         requireOwner(tournament, authentication);
         requireGroupTournament(tournament);
@@ -165,29 +192,52 @@ public class TournamentService implements TournamentServiceApi {
         participant.setGroup(null);
         participants.save(participant);
     }
-
-    @Transactional public List<MatchResponse> generateBracket(Long id, Authentication authentication) {
+    @Transactional
+    public List<MatchResponse> generateBracket(Long id, Authentication authentication) {
         Tournament tournament = get(id); 
         requireOwner(tournament, authentication); 
         
-        if (tournament.getParticipants().size() < 2) throw new BusinessException("At least two participants are required"); 
-        if (matches.existsByTournamentId(id)) throw new BusinessException("Bracket has already been generated");
+        if (tournament.getParticipants().size() < 2) {
+            throw new BusinessException("At least two participants are required"); 
+        }
+        if (matches.existsByTournamentId(id)) {
+            throw new BusinessException("Bracket has already been generated");
+        }
 
-        List<TournamentMatch> all;
+        List<TournamentMatch> all = new ArrayList<>();
         if (tournament.getFormat() == TournamentFormat.GROUPS) {
             List<TournamentGroup> tournamentGroups = groups.findByTournamentIdOrderByNameAsc(id);
-            if (tournamentGroups.isEmpty()) throw new BusinessException("Create at least one group before generating matches");
+            if (tournamentGroups.isEmpty()) {
+                throw new BusinessException("Create at least one group before generating matches");
+            }
             
-            // ПРОВЕРКА: Всички участници трябва да са разпределени точно в една група
             long assignedCount = tournament.getParticipants().stream().filter(p -> p.getGroup() != null).count();
             if (assignedCount != tournament.getParticipants().size()) {
                 throw new BusinessException("All participants must be assigned to a group before generating matches.");
             }
 
-            all = bracketGenerator.generateGroupStage(tournament, tournamentGroups, matches::saveAll);
+            int matchNum = 1;
+            for (TournamentGroup g : tournamentGroups) {
+                List<Participant> groupParts = tournament.getParticipants().stream()
+                        .filter(p -> g.equals(p.getGroup()))
+                        .toList();
+                for (int i = 0; i < groupParts.size(); i++) {
+                    for (int j = i + 1; j < groupParts.size(); j++) {
+                        TournamentMatch m = new TournamentMatch();
+                        m.setTournament(tournament);
+                        m.setGroup(g);
+                        m.setRoundNumber(1);
+                        m.setMatchNumber(matchNum++);
+                        m.setParticipant1(groupParts.get(i));
+                        m.setParticipant2(groupParts.get(j));
+                        m.setStatus(MatchStatus.READY);
+                        all.add(matches.save(m));
+                    }
+                }
+            }
         } else if (tournament.getFormat() == TournamentFormat.ELIMINATION) {
-            all = bracketGenerator.generate(tournament, tournament.getParticipants(), matches::saveAll);
-            bracketGenerator.resolveReadyAndByes(all, matches::saveAll);
+            all = bracketGenerator.generate(tournament, tournament.getParticipants(), matches::save);
+            bracketGenerator.resolveReadyAndByes(all, matches::save);
         } else {
             throw new BusinessException("Unsupported tournament format");
         }
@@ -199,18 +249,19 @@ public class TournamentService implements TournamentServiceApi {
         return all.stream().map(this::matchResponse).toList();
     }
 
-    @Transactional(readOnly = true) public List<MatchResponse> bracket(Long id) { 
+    @Transactional(readOnly = true)
+    public List<MatchResponse> bracket(Long id) { 
         return matches.findByTournamentIdOrderByRoundNumberAscMatchNumberAsc(id).stream().map(this::matchResponse).toList(); 
     }
 
-    @Transactional public MatchResponse result(Long matchId, MatchResultRequest request, Authentication authentication) {
+    @Transactional
+    public MatchResponse result(Long matchId, MatchResultRequest request, Authentication authentication) {
         TournamentMatch match = matches.findById(matchId)
                 .orElseThrow(() -> new ResourceNotFoundException("Match not found: " + matchId));
         
         Tournament tournament = match.getTournament();
         requireOwner(tournament, authentication);
 
-        // ЗАЩИТА: Само турнири в ход и само готови мачове
         if (tournament.getStatus() != TournamentStatus.IN_PROGRESS) {
             throw new BusinessException("Results can only be entered while the tournament is in progress.");
         }
@@ -236,10 +287,10 @@ public class TournamentService implements TournamentServiceApi {
 
         if (tournament.getFormat() == TournamentFormat.ELIMINATION) {
             bracketGenerator.advance(match, winner);
-            // Проверка за новоотключен мач след напредването
             TournamentMatch next = match.getNextMatch();
-            if (next != null && next.getStatus() == MatchStatus.READY) {
-                notifyUpcomingMatch(next);
+            if (next != null) {
+                cascadeAdvanceIfNeeded(next);
+                matches.save(next);
             }
         }
 
@@ -250,12 +301,56 @@ public class TournamentService implements TournamentServiceApi {
         return matchResponse(match);
     }
 
-    @Transactional(readOnly = true) public List<RankingResponse> rankings(Long id) { 
+    @Transactional(readOnly = true)
+    public List<RankingResponse> rankings(Long id) { 
         Tournament tournament = get(id); 
         return rankingCalculator.calculate(tournament, matches.findByTournamentIdOrderByRoundNumberAscMatchNumberAsc(id)); 
     }
 
     // --- Helpers ---
+
+    private void cascadeAdvanceIfNeeded(TournamentMatch match) {
+        if (match.getStatus() == MatchStatus.COMPLETED) {
+            return;
+        }
+        Participant p1 = match.getParticipant1();
+        Participant p2 = match.getParticipant2();
+
+        if (p1 != null && p2 != null) {
+            match.setStatus(MatchStatus.READY);
+            notifyUpcomingMatch(match);
+        } else if (p1 != null && p2 == null) {
+            TournamentMatch feeder = findFeederMatch(match, false);
+            if (feeder != null && feeder.getStatus() == MatchStatus.COMPLETED && feeder.getWinner() == null) {
+                match.setStatus(MatchStatus.COMPLETED);
+                match.setWinner(p1);
+                bracketGenerator.advance(match, p1);
+                if (match.getNextMatch() != null) {
+                    cascadeAdvanceIfNeeded(match.getNextMatch());
+                    matches.save(match.getNextMatch());
+                }
+            }
+        } else if (p1 == null && p2 != null) {
+            TournamentMatch feeder = findFeederMatch(match, true);
+            if (feeder != null && feeder.getStatus() == MatchStatus.COMPLETED && feeder.getWinner() == null) {
+                match.setStatus(MatchStatus.COMPLETED);
+                match.setWinner(p2);
+                bracketGenerator.advance(match, p2);
+                if (match.getNextMatch() != null) {
+                    cascadeAdvanceIfNeeded(match.getNextMatch());
+                    matches.save(match.getNextMatch());
+                }
+            }
+        }
+    }
+
+    private TournamentMatch findFeederMatch(TournamentMatch parent, boolean leftBranch) {
+        return matches.findByTournamentIdOrderByRoundNumberAscMatchNumberAsc(parent.getTournament().getId()).stream()
+                .filter(m -> m.getNextMatch() != null && m.getNextMatch().getId().equals(parent.getId()))
+                .filter(m -> leftBranch ? (m.getMatchNumber() % 2 != 0) : (m.getMatchNumber() % 2 == 0))
+                .findFirst()
+                .orElse(null);
+    }
 
     private AppUser user(Authentication a) { 
         return users.findByUsername(a.getName()).orElseThrow(() -> new ResourceNotFoundException("User not found")); 
@@ -263,8 +358,9 @@ public class TournamentService implements TournamentServiceApi {
 
     private void requireOwner(Tournament t, Authentication a) { 
         boolean isAdmin = a.getAuthorities().stream().anyMatch(x -> x.getAuthority().equals("ROLE_ADMINISTRATOR")); 
-        if (!isAdmin && !t.getOrganizer().getUsername().equals(a.getName())) 
+        if (!isAdmin && !t.getOrganizer().getUsername().equals(a.getName())) {
             throw new UnauthorizedOperationException("You do not own this tournament"); 
+        }
     }
 
     private TournamentResponse response(Tournament t) { return TournamentMapper.toResponse(t); }
@@ -278,17 +374,22 @@ public class TournamentService implements TournamentServiceApi {
 
     private TournamentGroup groupForTournament(Long tournamentId, Long groupId) {
         TournamentGroup group = groups.findById(groupId).orElseThrow(() -> new ResourceNotFoundException("Group not found: " + groupId));
-        if (group.getTournament() == null || !tournamentId.equals(group.getTournament().getId())) 
+        if (group.getTournament() == null || !tournamentId.equals(group.getTournament().getId())) {
             throw new BusinessException("Group does not belong to this tournament");
+        }
         return group;
     }
 
     private void requireGroupTournament(Tournament tournament) { 
-        if (tournament.getFormat() != TournamentFormat.GROUPS) throw new BusinessException("Groups are only available for GROUPS tournaments"); 
+        if (tournament.getFormat() != TournamentFormat.GROUPS) {
+            throw new BusinessException("Groups are only available for GROUPS tournaments"); 
+        }
     }
 
     private void requireRegistration(Tournament tournament) { 
-        if (tournament.getStatus() != TournamentStatus.REGISTRATION) throw new BusinessException("Tournament is not in registration stage."); 
+        if (tournament.getStatus() != TournamentStatus.REGISTRATION) {
+            throw new BusinessException("Tournament is not in registration stage."); 
+        }
     }
 
     // --- Notifications ---

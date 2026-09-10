@@ -32,9 +32,9 @@ public class Participant {
     private Tournament tournament;
 
     // НОВО: Един участник може да е само в ЕДНА група (Many-to-One)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id")
-    private TournamentGroup group;
+   @ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "group_id")
+private TournamentGroup group;
 
     @ManyToOne(fetch = FetchType.LAZY) 
     @JoinColumn(name = "app_user_id") 
