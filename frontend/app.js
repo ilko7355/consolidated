@@ -106,6 +106,9 @@ function showAuth(mode='login'){
 
 async function authSubmit(event){
     event.preventDefault(); 
+    console.log("Button clicked, form submitted!"); // <-- Добави това
+    
+    event.preventDefault(); 
     const register = $('#auth-form').dataset.mode === 'register'; 
     const payload = {username:$('#username').value.trim(), password:$('#password').value}; 
     if(register){
