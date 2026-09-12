@@ -20,6 +20,8 @@ public class TournamentController {
     @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT) @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMINISTRATOR')") public void delete(@PathVariable Long id, Authentication authentication) { service.delete(id, authentication); }
     @PostMapping("/{id}/participants") @ResponseStatus(HttpStatus.CREATED) @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMINISTRATOR')") public ParticipantResponse register(@PathVariable Long id, @Valid @RequestBody ParticipantRequest request, Authentication authentication) { return service.registerParticipant(id, request, authentication); }
     @GetMapping("/{id}/participants") public List<ParticipantResponse> participants(@PathVariable Long id) { return service.registered(id); }
+    @PostMapping("/{id}/join") @ResponseStatus(HttpStatus.CREATED) @PreAuthorize("hasRole('PARTICIPANT')") public ParticipantResponse join(@PathVariable Long id, @Valid @RequestBody(required = false) JoinTournamentRequest request, Authentication authentication) { return service.join(id, request, authentication); }
+    @DeleteMapping("/{id}/join") @ResponseStatus(HttpStatus.NO_CONTENT) @PreAuthorize("hasRole('PARTICIPANT')") public void leave(@PathVariable Long id, Authentication authentication) { service.leave(id, authentication); }
     @GetMapping("/{id}/groups") public List<GroupResponse> groups(@PathVariable Long id) { return service.groups(id); }
     @PostMapping("/{id}/groups") @ResponseStatus(HttpStatus.CREATED) @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMINISTRATOR')") public GroupResponse createGroup(@PathVariable Long id, @Valid @RequestBody CreateGroupRequest request, Authentication authentication) { return service.createGroup(id, request, authentication); }
     @PutMapping("/{id}/groups/{groupId}/participants/{participantId}") @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMINISTRATOR')") public GroupResponse assignParticipant(@PathVariable Long id, @PathVariable Long groupId, @PathVariable Long participantId, Authentication authentication) { return service.assignParticipant(id, groupId, participantId, authentication); }
@@ -27,5 +29,6 @@ public class TournamentController {
     @PostMapping("/{id}/generate-bracket") @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMINISTRATOR')") public List<MatchResponse> generate(@PathVariable Long id, Authentication authentication) { return service.generateBracket(id, authentication); }
     @GetMapping("/{id}/bracket") public List<MatchResponse> bracket(@PathVariable Long id) { return service.bracket(id); }
     @GetMapping("/{id}/rankings") public List<RankingResponse> rankings(@PathVariable Long id) { return service.rankings(id); }
-    @GetMapping("/{id}/results") public List<MatchResponse> results(@PathVariable Long id) { return service.bracket(id).stream().filter(m -> "COMPLETED".equals(m.status())).toList(); }
+    @GetMapping("/{id}/results") public List<MatchResponse> results(@PathVariable Long id) { return service.results(id); }
+    @GetMapping("/{id}/statistics") public TournamentStatisticsResponse statistics(@PathVariable Long id) { return service.statistics(id); }
 }

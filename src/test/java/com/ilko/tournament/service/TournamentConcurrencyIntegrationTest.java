@@ -13,40 +13,60 @@ import com.ilko.tournament.repository.TournamentRepository;
 import com.ilko.tournament.service.impl.TournamentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 import java.time.LocalDate;
 import java.util.Collections;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Two concurrent requests move the same participant into different groups. Runs only against a real
+ * MySQL database configured through TEST_DB_USERNAME / TEST_DB_PASSWORD (same convention as
+ * {@link com.ilko.tournament.entity.ParticipantMySqlIntegrationTest}); skipped otherwise.
+ */
 @SpringBootTest
-@ActiveProfiles("test")
+@EnabledIf("mysqlTestDatabaseConfigured")
 class TournamentConcurrencyIntegrationTest {
 
-    @Autowired
-    private TournamentService tournamentService;
+    @DynamicPropertySource
+    static void databaseProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", () -> "jdbc:mysql://"
+                + env("TEST_DB_HOST", "localhost") + ":"
+                + env("TEST_DB_PORT", "3306") + "/"
+                + env("TEST_DB_NAME", "tournament_platform_test")
+                + "?createDatabaseIfNotExist=true&serverTimezone=UTC");
+        registry.add("spring.datasource.username", () -> env("TEST_DB_USERNAME", ""));
+        registry.add("spring.datasource.password", () -> env("TEST_DB_PASSWORD", ""));
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "update");
+        registry.add("app.demo-data", () -> "false");
+    }
 
-    @Autowired
-    private ParticipantRepository participantRepository;
+    static boolean mysqlTestDatabaseConfigured() {
+        return !env("TEST_DB_USERNAME", "").isBlank() && System.getenv("TEST_DB_PASSWORD") != null;
+    }
 
-    @Autowired
-    private TournamentGroupRepository groupRepository;
+    private static String env(String name, String fallback) {
+        String value = System.getenv(name);
+        return value == null ? fallback : value;
+    }
 
-    @Autowired
-    private TournamentRepository tournamentRepository;
-
-    @Autowired
-    private AppUserRepository userRepository;
+    @Autowired private TournamentService tournamentService;
+    @Autowired private ParticipantRepository participantRepository;
+    @Autowired private TournamentGroupRepository groupRepository;
+    @Autowired private TournamentRepository tournamentRepository;
+    @Autowired private AppUserRepository userRepository;
 
     private Long tournamentId;
     private Long groupId1;
@@ -56,17 +76,16 @@ class TournamentConcurrencyIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // Създаваме потребител-организатор за автентикация
+        String username = "organizer-" + UUID.randomUUID().toString().substring(0, 8);
         AppUser organizer = new AppUser();
-        organizer.setUsername("testOrganizer");
-        organizer.setPassword("password");
+        organizer.setUsername(username);
+        organizer.setEmail(username + "@example.com");
+        organizer.setPassword("not-used");
         organizer = userRepository.save(organizer);
+        auth = new UsernamePasswordAuthenticationToken(username, "not-used", Collections.emptyList());
 
-        auth = new UsernamePasswordAuthenticationToken("testOrganizer", "password", Collections.emptyList());
-
-        // Подготовка на турнир във формат GROUPS и статус REGISTRATION
         Tournament tournament = new Tournament();
-        tournament.setName("Test Tournament");
+        tournament.setName("Concurrency Cup");
         tournament.setFormat(TournamentFormat.GROUPS);
         tournament.setStatus(TournamentStatus.REGISTRATION);
         tournament.setStartDate(LocalDate.now());
@@ -78,59 +97,41 @@ class TournamentConcurrencyIntegrationTest {
         TournamentGroup group1 = new TournamentGroup();
         group1.setName("Group A");
         group1.setTournament(tournament);
-        group1 = groupRepository.save(group1);
-        groupId1 = group1.getId();
+        groupId1 = groupRepository.save(group1).getId();
 
         TournamentGroup group2 = new TournamentGroup();
         group2.setName("Group B");
         group2.setTournament(tournament);
-        group2 = groupRepository.save(group2);
-        groupId2 = group2.getId();
+        groupId2 = groupRepository.save(group2).getId();
 
         Participant participant = new Participant();
         participant.setName("John Doe");
         participant.setTournament(tournament);
-        participant = participantRepository.save(participant);
-        participantId = participant.getId();
+        participantId = participantRepository.save(participant).getId();
     }
 
     @Test
-    void concurrentAssignmentToDifferentGroups_ShouldHandleRaceConditions() throws InterruptedException {
-        int numberOfThreads = 2;
-        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
+    void concurrentAssignmentToDifferentGroupsLeavesTheParticipantInExactlyOneGroup() throws InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
         CountDownLatch latch = new CountDownLatch(1);
-        AtomicInteger successCount = new AtomicInteger(0);
-        AtomicInteger exceptionCount = new AtomicInteger(0);
 
-        // Нишка 1: опитва да добави участника към Група 1
-        executorService.submit(() -> {
-            try {
-                latch.await();
-                tournamentService.assignParticipant(tournamentId, groupId1, participantId, auth);
-                successCount.incrementAndGet();
-            } catch (Exception e) {
-                exceptionCount.incrementAndGet();
-            }
-        });
-
-        // Нишка 2: опитва да добави същия участник към Група 2 едновременно
-        executorService.submit(() -> {
-            try {
-                latch.await();
-                tournamentService.assignParticipant(tournamentId, groupId2, participantId, auth);
-                successCount.incrementAndGet();
-            } catch (Exception e) {
-                exceptionCount.incrementAndGet();
-            }
-        });
+        for (Long groupId : new Long[]{groupId1, groupId2}) {
+            executorService.submit(() -> {
+                try {
+                    latch.await();
+                    tournamentService.assignParticipant(tournamentId, groupId, participantId, auth);
+                } catch (Exception ignored) {
+                    // one of the two requests may legitimately lose the race
+                }
+            });
+        }
 
         latch.countDown();
         executorService.shutdown();
-        boolean finished = executorService.awaitTermination(5, TimeUnit.SECONDS);
-        assertThat(finished).isTrue();
+        assertThat(executorService.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
 
-        // Проверяваме финалното състояние на базата данни
         Participant updatedParticipant = participantRepository.findById(participantId).orElseThrow();
         assertThat(updatedParticipant.getGroup()).isNotNull();
+        assertThat(updatedParticipant.getGroup().getId()).isIn(groupId1, groupId2);
     }
 }

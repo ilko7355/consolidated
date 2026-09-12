@@ -1,68 +1,85 @@
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\config\AdminAccountInitializer.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\config\AuthenticationConfig.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\config\package-info.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\config\ParticipantSchemaGuard.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\controller\AuthController.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\controller\MatchController.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\controller\NotificationController.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\controller\package-info.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\controller\TournamentController.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\AuthResponse.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\CreateGroupRequest.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\CreateTournamentRequest.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\GroupResponse.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\LoginRequest.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\MatchResponse.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\MatchResultRequest.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\NotificationResponse.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\package-info.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\ParticipantRequest.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\ParticipantResponse.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\RankingResponse.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\RegisterRequest.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\TournamentListProjection.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\TournamentResponse.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\dto\UpdateTournamentRequest.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\entity\AppUser.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\entity\Notification.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\entity\package-info.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\entity\Participant.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\entity\Tournament.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\entity\TournamentGroup.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\entity\TournamentMatch.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\enums\MatchStatus.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\enums\NotificationType.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\enums\package-info.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\enums\ParticipantStatus.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\enums\Role.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\enums\TournamentFormat.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\enums\TournamentStatus.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\exception\BusinessException.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\exception\ConflictException.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\exception\GlobalExceptionHandler.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\exception\ResourceNotFoundException.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\exception\UnauthorizedOperationException.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\mapper\package-info.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\mapper\TournamentMapper.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\repository\AppUserRepository.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\repository\NotificationRepository.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\repository\package-info.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\repository\ParticipantRepository.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\repository\TournamentGroupRepository.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\repository\TournamentMatchRepository.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\repository\TournamentRepository.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\security\AppUserDetailsService.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\security\SecurityConfig.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\service\AuthServiceApi.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\service\BracketGenerator.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\service\impl\AuthService.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\service\impl\NotificationService.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\service\impl\package-info.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\service\impl\TournamentService.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\service\NotificationServiceApi.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\service\package-info.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\service\RankingCalculator.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\service\TournamentServiceApi.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\TournamentPlatformApplication.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\util\package-info.java
-C:\tournament-final-CURRENT\tournament-consolidated\consolidated\src\main\java\com\ilko\tournament\validation\package-info.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\config\AdminAccountInitializer.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\config\AuthenticationConfig.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\config\DemoDataInitializer.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\config\package-info.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\config\ParticipantSchemaGuard.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\config\TournamentFormatSchemaGuard.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\controller\AdminController.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\controller\AuthController.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\controller\MatchController.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\controller\NotificationController.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\controller\package-info.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\controller\TournamentController.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\AuthResponse.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\CreateGroupRequest.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\CreateTournamentRequest.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\GroupResponse.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\JoinTournamentRequest.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\LoginRequest.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\MatchResponse.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\MatchResultRequest.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\NotificationResponse.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\package-info.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\ParticipantRequest.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\ParticipantResponse.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\PlatformOverviewResponse.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\PlayerMatchResponse.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\RankingResponse.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\RegisterRequest.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\TournamentListProjection.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\TournamentResponse.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\TournamentStatisticsResponse.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\UpdateTournamentRequest.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\UpdateUserRoleRequest.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\UpdateUserStatusRequest.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\dto\UserResponse.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\entity\AppUser.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\entity\Notification.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\entity\package-info.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\entity\Participant.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\entity\Tournament.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\entity\TournamentGroup.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\entity\TournamentMatch.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\enums\BracketSide.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\enums\MatchStatus.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\enums\NotificationType.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\enums\package-info.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\enums\ParticipantStatus.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\enums\Role.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\enums\TournamentFormat.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\enums\TournamentStatus.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\exception\BusinessException.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\exception\ConflictException.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\exception\GlobalExceptionHandler.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\exception\ResourceNotFoundException.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\exception\UnauthorizedOperationException.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\mapper\package-info.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\mapper\TournamentMapper.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\mapper\UserMapper.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\repository\AppUserRepository.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\repository\NotificationRepository.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\repository\package-info.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\repository\ParticipantRepository.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\repository\TournamentGroupRepository.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\repository\TournamentMatchRepository.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\repository\TournamentRepository.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\security\AppUserDetailsService.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\security\SecurityConfig.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\AuthServiceApi.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\BracketGenerator.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\DoubleEliminationGenerator.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\impl\AuthService.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\impl\NotificationService.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\impl\package-info.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\impl\TournamentService.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\impl\UserAdminService.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\NotificationServiceApi.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\package-info.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\RankingCalculator.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\RoundRobinScheduler.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\TournamentServiceApi.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\TournamentStatisticsCalculator.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\service\UserAdminServiceApi.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\TournamentPlatformApplication.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\util\package-info.java
+D:\Code 2\Ilko-Gramatikov\src\main\java\com\ilko\tournament\validation\package-info.java

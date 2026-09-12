@@ -54,7 +54,7 @@ class SecurityAuthorizationTest {
             void createReturnsCreatedAndResponseBody() throws Exception {
             when(service.create(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
                 .thenReturn(new TournamentResponse(1L, "Cup", "Description", "ELIMINATION", "REGISTRATION",
-                    LocalDate.of(2099, 1, 1), LocalDate.of(2099, 1, 2), "organizer", 0));
+                    LocalDate.of(2099, 1, 1), LocalDate.of(2099, 1, 2), "organizer", 0, false));
 
             mvc.perform(post("/api/tournaments")
                     .contentType(APPLICATION_JSON)
@@ -69,7 +69,7 @@ class SecurityAuthorizationTest {
             void updateReturnsOk() throws Exception {
             when(service.update(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
                 .thenReturn(new TournamentResponse(1L, "Updated", null, "ELIMINATION", "REGISTRATION",
-                    LocalDate.of(2099, 1, 1), LocalDate.of(2099, 1, 2), "organizer", 0));
+                    LocalDate.of(2099, 1, 1), LocalDate.of(2099, 1, 2), "organizer", 0, false));
 
             mvc.perform(put("/api/tournaments/1")
                     .contentType(APPLICATION_JSON)
@@ -117,6 +117,24 @@ class SecurityAuthorizationTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
             }
+
+    @Test
+    @WithMockUser(username = "georgi", roles = "PARTICIPANT")
+    void participantCanJoinATournament() throws Exception {
+        when(service.join(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new com.ilko.tournament.dto.ParticipantResponse(9L, "georgi", "ACTIVE", "georgi"));
+
+        mvc.perform(post("/api/tournaments/1/join").contentType(APPLICATION_JSON).content("{}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.linkedUsername").value("georgi"));
+    }
+
+    @Test
+    @WithMockUser(username = "organizer", roles = "ORGANIZER")
+    void organizerCannotJoinAsAParticipant() throws Exception {
+        mvc.perform(post("/api/tournaments/1/join").contentType(APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
+    }
 
     @Test
     @WithMockUser(username = "participant", roles = "PARTICIPANT")

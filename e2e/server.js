@@ -1,13 +1,3 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const root = '/home/claude/tournament-final/frontend';
-const mime = { '.html':'text/html', '.js':'application/javascript', '.css':'text/css' };
-http.createServer((req, res) => {
-  let filePath = path.join(root, req.url === '/' ? 'index.html' : req.url);
-  fs.readFile(filePath, (err, data) => {
-    if (err) { res.writeHead(404); res.end('Not found'); return; }
-    res.writeHead(200, { 'Content-Type': mime[path.extname(filePath)] || 'text/plain' });
-    res.end(data);
-  });
-}).listen(5500, () => console.log('Static server on 5500'));
+// Serves the real frontend/ files on port 5500 for the Playwright verification scripts.
+process.env.PORT = process.env.PORT || '5500';
+require('../frontend/server.js');

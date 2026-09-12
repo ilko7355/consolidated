@@ -31,6 +31,7 @@ public class SecurityConfig {
                         .accessDeniedHandler((request, response, exception) -> writeError(response, request.getRequestURI(), HttpServletResponse.SC_FORBIDDEN, "Access is denied")))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/auth/**", "/error").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMINISTRATOR")
                         .anyRequest().authenticated())
                 .httpBasic(basic -> {})
                 .build();

@@ -1,4 +1,4 @@
-const { chromium } = require('/home/claude/.npm-global/lib/node_modules/playwright');
+const { chromium } = require('playwright');
 
 const results = [];
 function record(name, pass, details) {

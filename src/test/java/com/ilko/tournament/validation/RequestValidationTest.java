@@ -48,7 +48,7 @@ class RequestValidationTest {
     @Test
     void rejectsInvalidTournamentDatesAndScores() {
         var tournament = new CreateTournamentRequest("Tournament", null, TournamentFormat.ELIMINATION,
-                LocalDate.now().minusDays(1), LocalDate.now());
+                LocalDate.now().minusDays(1), LocalDate.now(), false);
         var score = new MatchResultRequest(-1, null);
 
         assertFalse(validator.validate(tournament).isEmpty());

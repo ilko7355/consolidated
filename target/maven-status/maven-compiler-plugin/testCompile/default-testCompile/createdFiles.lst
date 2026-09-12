@@ -1,0 +1,7 @@
+com\ilko\tournament\service\DoubleEliminationGeneratorTest.class
+com\ilko\tournament\service\UserAdminServiceTest.class
+com\ilko\tournament\security\AdminSecurityTest.class
+com\ilko\tournament\config\TournamentFormatSchemaGuardTest.class
+com\ilko\tournament\service\RoundRobinSchedulerTest.class
+com\ilko\tournament\service\TournamentStatisticsCalculatorTest.class
+com\ilko\tournament\service\BracketLifecycleSimulationTest$1.class

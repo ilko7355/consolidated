@@ -1,0 +1,16 @@
+{
+  "name": "tournament-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "One-command runner and static client server for the Tournament Platform. Deliberately has no dependencies.",
+  "scripts": {
+    "start": "node dev.js",
+    "demo": "node dev.js --demo",
+    "client": "node frontend/server.js",
+    "smoke": "node e2e/api-smoke.js",
+    "screenshots": "node e2e/screenshots.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

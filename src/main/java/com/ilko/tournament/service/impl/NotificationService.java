@@ -35,6 +35,14 @@ public class NotificationService implements NotificationServiceApi {
         return response(notifications.save(notification));
     }
 
+    @Transactional
+    public int markAllRead(String username) {
+        List<Notification> unread = notifications.findByRecipientUsernameAndReadStatusFalseOrderByCreatedAtDesc(username);
+        unread.forEach(notification -> notification.setReadStatus(true));
+        notifications.saveAll(unread);
+        return unread.size();
+    }
+
     private NotificationResponse response(Notification n) {
         TournamentMatch match = n.getMatch();
         Tournament tournament = n.getTournament();

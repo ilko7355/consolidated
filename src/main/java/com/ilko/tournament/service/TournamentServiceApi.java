@@ -13,6 +13,8 @@ public interface TournamentServiceApi {
     TournamentResponse update(Long id, UpdateTournamentRequest request, Authentication authentication);
     void delete(Long id, Authentication authentication);
     ParticipantResponse registerParticipant(Long id, ParticipantRequest request, Authentication authentication);
+    ParticipantResponse join(Long id, JoinTournamentRequest request, Authentication authentication);
+    void leave(Long id, Authentication authentication);
     List<ParticipantResponse> registered(Long id);
     List<GroupResponse> groups(Long id);
     GroupResponse createGroup(Long id, CreateGroupRequest request, Authentication authentication);
@@ -20,6 +22,9 @@ public interface TournamentServiceApi {
     void removeParticipant(Long tournamentId, Long groupId, Long participantId, Authentication authentication);
     List<MatchResponse> generateBracket(Long id, Authentication authentication);
     List<MatchResponse> bracket(Long id);
+    List<MatchResponse> results(Long id);
     MatchResponse result(Long matchId, MatchResultRequest request, Authentication authentication);
     List<RankingResponse> rankings(Long id);
+    TournamentStatisticsResponse statistics(Long id);
+    List<PlayerMatchResponse> myMatches(Authentication authentication);
 }

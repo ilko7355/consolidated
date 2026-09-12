@@ -1,4 +1,4 @@
-const { chromium } = require('/home/claude/.npm-global/lib/node_modules/playwright');
+const { chromium } = require('playwright');
 
 let notifications = [
   { id: 1, message: 'Initial notification', type: 'MATCH_SCHEDULED', read: false, createdAt: '2026-09-03T10:00:00', tournamentId: 1, tournamentName: 'Winter Cup', matchId: 10, round: 1, matchNumber: 1, opponent: 'Bob', scheduledTime: null, matchStatus: 'READY' }

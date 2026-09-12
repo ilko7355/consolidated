@@ -20,11 +20,19 @@ public class Tournament {
     @Column(length = 2000) private String description;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private TournamentFormat format;
     @Enumerated(EnumType.STRING) @Column(nullable = false) private TournamentStatus status = TournamentStatus.REGISTRATION;
+    /**
+     * Double elimination only: whether the grand final is followed by a deciding rematch when the
+     * losers-bracket finalist wins it. Without the rematch a single loss in the grand final ends the
+     * tournament for an otherwise unbeaten finalist; with it, both need two losses to be eliminated.
+     */
+    @Column(nullable = false) private boolean grandFinalReset;
     @Column(nullable = false) private LocalDate startDate;
     @Column(nullable = false) private LocalDate endDate;
     @Column(nullable = false, updatable = false) private LocalDateTime createdAt;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "organizer_id", nullable = false) private AppUser organizer;
+    /** Ordered by id, i.e. registration order - which is also the seeding order for brackets. */
     @OneToMany(mappedBy = "tournament", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
     private List<Participant> participants = new ArrayList<>();
     /**
      * Groups belonging to this tournament (GROUPS format only). Deleting the tournament must delete

@@ -107,7 +107,7 @@ public class ParticipantSchemaGuard implements CommandLineRunner {
                 "database BEFORE starting the application again. If you're migrating from an older " +
                 "tournament_participants join table and want to inspect legacy rows first, the " +
                 "read-only docs/migrate-participants-table.sql diagnostic can help you find them - " +
-                "see README.md 'Database Setup' for details."
+                "see README.md, section 1 'Configure the database'."
         );
     }
 }

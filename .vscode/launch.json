@@ -1,0 +1,27 @@
+{
+    // Run and Debug (Ctrl+Shift+D). Pick a configuration, then press F5.
+    // "with demo data" adds --app.demo-data=true, which seeds the demo accounts and tournaments
+    // into a database that has no tournaments yet.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Tournament Platform",
+            "request": "launch",
+            "mainClass": "com.ilko.tournament.TournamentPlatformApplication",
+            "projectName": "tournament-platform",
+            "cwd": "${workspaceFolder}",
+            "vmArgs": "-Djdk.net.unixdomain.tmpdir=${workspaceFolder}/target"
+        },
+        {
+            "type": "java",
+            "name": "Tournament Platform (with demo data)",
+            "request": "launch",
+            "mainClass": "com.ilko.tournament.TournamentPlatformApplication",
+            "projectName": "tournament-platform",
+            "cwd": "${workspaceFolder}",
+            "args": "--app.demo-data=true",
+            "vmArgs": "-Djdk.net.unixdomain.tmpdir=${workspaceFolder}/target"
+        }
+    ]
+}

@@ -6,132 +6,191 @@ import com.ilko.tournament.entity.TournamentMatch;
 import com.ilko.tournament.enums.MatchStatus;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
-import java.util.function.Consumer;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+/**
+ * Single-elimination bracket algorithm.
+ *
+ * <p>Participants are seeded in the order they are passed in (seed 1 first) and placed with the standard
+ * seeding pattern - for eight slots 1v8, 4v5, 2v7, 3v6 - so the two strongest seeds can only meet in the
+ * final. When the participant count is not a power of two, the unused seed positions become BYEs. The
+ * pattern pairs every BYE with one of the top seeds, so a BYE never meets another BYE and every
+ * participant plays a real opponent from round two onwards.</p>
+ *
+ * <p>Matches are addressed purely by position (round, match number): the feeders of match k in round r
+ * are matches 2k-1 and 2k of round r-1, and the winner of match k moves to match ceil(k/2) of round r+1
+ * (slot 1 for odd k, slot 2 for even k). The persisted {@code nextMatch} link mirrors that structure, but
+ * the algorithm never relies on it, so it behaves the same on new and on database-loaded matches.</p>
+ */
 @Component
 public class BracketGenerator {
 
-    public List<TournamentMatch> generate(Tournament tournament, List<Participant> participants, Consumer<TournamentMatch> onMatchReady) {
-        if (participants == null || participants.size() < 2) {
+    private static final Comparator<TournamentMatch> BRACKET_ORDER =
+            Comparator.comparingInt(TournamentMatch::getRoundNumber).thenComparingInt(TournamentMatch::getMatchNumber);
+
+    /** State of one side of a match while the bracket is being settled. */
+    private enum Slot { FILLED, EMPTY, WAITING }
+
+    private record Position(int round, int number) { }
+
+    /** Builds every match of the bracket, links each match to its next match and settles the BYEs. */
+    public List<TournamentMatch> generate(Tournament tournament, List<Participant> seeding) {
+        if (seeding == null || seeding.size() < 2) {
             throw new IllegalArgumentException("Elimination bracket requires at least 2 participants.");
         }
-
-        int n = participants.size();
-        int bracketSize = nextPowerOfTwo(n);
+        int bracketSize = nextPowerOfTwo(seeding.size());
         int totalRounds = Integer.numberOfTrailingZeros(bracketSize);
+        int[] seeds = seedOrder(bracketSize);
 
-        // Seed participants and pad with nulls for BYEs
-        List<Participant> slots = new ArrayList<>(Collections.nCopies(bracketSize, null));
-        for (int i = 0; i < n; i++) {
-            slots.set(i, participants.get(i));
-        }
-
-        List<TournamentMatch> allMatches = new ArrayList<>();
-        Map<Integer, List<TournamentMatch>> roundsMap = new HashMap<>();
-
-        // Generate Round 1
-        int round1MatchesCount = bracketSize / 2;
-        List<TournamentMatch> round1Matches = new ArrayList<>();
-        for (int i = 0; i < round1MatchesCount; i++) {
-            TournamentMatch match = new TournamentMatch();
-            match.setTournament(tournament);
-            match.setRoundNumber(1);
-            match.setMatchNumber(i + 1);
-            match.setParticipant1(slots.get(2 * i));
-            match.setParticipant2(slots.get(2 * i + 1));
-            match.setStatus(MatchStatus.PENDING);
-            round1Matches.add(match);
-            allMatches.add(match);
-        }
-        roundsMap.put(1, round1Matches);
-
-        // Generate subsequent rounds
-        int currentCount = round1MatchesCount;
-        for (int round = 2; round <= totalRounds; round++) {
-            currentCount /= 2;
-            List<TournamentMatch> currentRoundMatches = new ArrayList<>();
-            for (int i = 0; i < currentCount; i++) {
+        List<TournamentMatch> bracket = new ArrayList<>();
+        int matchesInRound = bracketSize / 2;
+        for (int round = 1; round <= totalRounds; round++, matchesInRound /= 2) {
+            for (int number = 1; number <= matchesInRound; number++) {
                 TournamentMatch match = new TournamentMatch();
                 match.setTournament(tournament);
                 match.setRoundNumber(round);
-                match.setMatchNumber(i + 1);
+                match.setMatchNumber(number);
                 match.setStatus(MatchStatus.PENDING);
-                currentRoundMatches.add(match);
-                allMatches.add(match);
-            }
-            roundsMap.put(round, currentRoundMatches);
-        }
-
-        // Link matches to their nextMatch
-        for (int round = 1; round < totalRounds; round++) {
-            List<TournamentMatch> current = roundsMap.get(round);
-            List<TournamentMatch> next = roundsMap.get(round + 1);
-            for (int i = 0; i < current.size(); i++) {
-                TournamentMatch match = current.get(i);
-                TournamentMatch nextMatch = next.get(i / 2);
-                match.setNextMatch(nextMatch);
+                if (round == 1) {
+                    match.setParticipant1(seeded(seeding, seeds[2 * number - 2]));
+                    match.setParticipant2(seeded(seeding, seeds[2 * number - 1]));
+                }
+                bracket.add(match);
             }
         }
 
-        resolveReadyAndByes(allMatches, onMatchReady);
-
-        return allMatches;
+        Map<Position, TournamentMatch> index = index(bracket);
+        for (TournamentMatch match : bracket) {
+            match.setNextMatch(index.get(nextPosition(match)));
+        }
+        propagate(bracket);
+        return bracket;
     }
 
-    public void resolveReadyAndByes(List<TournamentMatch> matches, Consumer<TournamentMatch> onMatchReady) {
-        Map<Integer, List<TournamentMatch>> byRound = new TreeMap<>();
-        for (TournamentMatch m : matches) {
-            byRound.computeIfAbsent(m.getRoundNumber(), k -> new ArrayList<>()).add(m);
+    /**
+     * Records that {@code completed} has been decided: moves its winner into the next round and settles
+     * whatever that unlocks. Returns the matches that became READY as a result.
+     */
+    public List<TournamentMatch> advance(List<TournamentMatch> bracket, TournamentMatch completed) {
+        Position completedPosition = position(completed);
+        List<TournamentMatch> current = new ArrayList<>(bracket.size());
+        for (TournamentMatch match : bracket) {
+            current.add(position(match).equals(completedPosition) ? completed : match);
         }
+        placeWinner(index(current), completed);
+        return propagate(current);
+    }
 
-        for (Map.Entry<Integer, List<TournamentMatch>> entry : byRound.entrySet()) {
-            for (TournamentMatch match : entry.getValue()) {
-                if (match.getStatus() == MatchStatus.COMPLETED) {
-                    continue;
-                }
+    /**
+     * Walks the bracket round by round and settles every unfinished match whose two sides are known:
+     * two participants make it READY, a participant facing an empty side wins by BYE, and two empty sides
+     * complete it without a winner. A side whose feeder match is still undecided is WAITING, and the match
+     * stays PENDING until that feeder is played. Returns the matches that became READY during this call.
+     */
+    public List<TournamentMatch> propagate(List<TournamentMatch> bracket) {
+        Map<Position, TournamentMatch> index = index(bracket);
+        List<TournamentMatch> ordered = new ArrayList<>(bracket);
+        ordered.sort(BRACKET_ORDER);
 
-                Participant p1 = match.getParticipant1();
-                Participant p2 = match.getParticipant2();
-
-                if (p1 != null && p2 != null) {
+        List<TournamentMatch> becameReady = new ArrayList<>();
+        for (TournamentMatch match : ordered) {
+            if (match.getStatus() == MatchStatus.COMPLETED) {
+                continue;
+            }
+            Slot first = slot(match.getParticipant1(), feeder(index, match, 1));
+            Slot second = slot(match.getParticipant2(), feeder(index, match, 2));
+            if (first == Slot.WAITING || second == Slot.WAITING) {
+                continue;
+            }
+            if (first == Slot.FILLED && second == Slot.FILLED) {
+                if (match.getStatus() != MatchStatus.READY) {
                     match.setStatus(MatchStatus.READY);
-                    if (onMatchReady != null) {
-                        onMatchReady.accept(match);
-                    }
-                } else if (p1 != null && p2 == null) {
-                    match.setStatus(MatchStatus.COMPLETED);
-                    match.setWinner(p1);
-                    advance(match, p1);
-                } else if (p1 == null && p2 != null) {
-                    match.setStatus(MatchStatus.COMPLETED);
-                    match.setWinner(p2);
-                    advance(match, p2);
-                } else {
-                    // Empty branch: null vs null
-                    match.setStatus(MatchStatus.COMPLETED);
-                    match.setWinner(null);
-                    advance(match, null);
+                    becameReady.add(match);
                 }
+                continue;
             }
+            match.setWinner(first == Slot.FILLED ? match.getParticipant1() : match.getParticipant2());
+            match.setStatus(MatchStatus.COMPLETED);
+            placeWinner(index, match);
         }
+        return becameReady;
     }
 
-    public void advance(TournamentMatch match, Participant winner) {
-        TournamentMatch nextMatch = match.getNextMatch();
-        if (nextMatch == null) {
+    /**
+     * Standard seeding order for a bracket of the given power-of-two size, listed by bracket position.
+     * Built by doubling: every seed s of the smaller bracket is followed by its opponent size + 1 - s.
+     */
+    static int[] seedOrder(int bracketSize) {
+        int[] order = {1};
+        while (order.length < bracketSize) {
+            int size = order.length * 2;
+            int[] expanded = new int[size];
+            for (int i = 0; i < order.length; i++) {
+                expanded[2 * i] = order[i];
+                expanded[2 * i + 1] = size + 1 - order[i];
+            }
+            order = expanded;
+        }
+        return order;
+    }
+
+    private Slot slot(Participant participant, TournamentMatch feeder) {
+        if (participant != null) {
+            return Slot.FILLED;
+        }
+        // Round one has no feeder, so an empty side there is an unused seed position (a BYE).
+        if (feeder == null || feeder.getStatus() == MatchStatus.COMPLETED) {
+            return Slot.EMPTY;
+        }
+        return Slot.WAITING;
+    }
+
+    private TournamentMatch feeder(Map<Position, TournamentMatch> index, TournamentMatch match, int side) {
+        if (match.getRoundNumber() == 1) {
+            return null;
+        }
+        int feederNumber = side == 1 ? 2 * match.getMatchNumber() - 1 : 2 * match.getMatchNumber();
+        return index.get(new Position(match.getRoundNumber() - 1, feederNumber));
+    }
+
+    private void placeWinner(Map<Position, TournamentMatch> index, TournamentMatch match) {
+        TournamentMatch next = index.get(nextPosition(match));
+        if (next == null) {
             return;
         }
-
-        if (match.getMatchNumber() % 2 != 0) {
-            nextMatch.setParticipant1(winner);
+        if (match.getMatchNumber() % 2 == 1) {
+            next.setParticipant1(match.getWinner());
         } else {
-            nextMatch.setParticipant2(winner);
+            next.setParticipant2(match.getWinner());
         }
+    }
+
+    private Position nextPosition(TournamentMatch match) {
+        return new Position(match.getRoundNumber() + 1, (match.getMatchNumber() + 1) / 2);
+    }
+
+    private Position position(TournamentMatch match) {
+        return new Position(match.getRoundNumber(), match.getMatchNumber());
+    }
+
+    private Map<Position, TournamentMatch> index(List<TournamentMatch> bracket) {
+        Map<Position, TournamentMatch> index = new HashMap<>();
+        for (TournamentMatch match : bracket) {
+            index.put(position(match), match);
+        }
+        return index;
+    }
+
+    private Participant seeded(List<Participant> seeding, int seed) {
+        return seed <= seeding.size() ? seeding.get(seed - 1) : null;
     }
 
     private int nextPowerOfTwo(int n) {
         int highest = Integer.highestOneBit(n);
-        return (highest == n) ? n : highest << 1;
+        return highest == n ? n : highest << 1;
     }
 }

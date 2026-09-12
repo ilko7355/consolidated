@@ -1,0 +1,9 @@
+# Machine-specific settings. Copy this file to application-local.properties (same folder as pom.xml)
+# and fill in your own values. application-local.properties is git-ignored - never commit it.
+
+# MySQL account the application connects with
+spring.datasource.username=root
+spring.datasource.password=CHANGE_ME
+
+# Optional: create demo accounts and tournaments on first start into an empty database
+# app.demo-data=true

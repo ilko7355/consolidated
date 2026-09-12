@@ -7,6 +7,8 @@ import com.ilko.tournament.repository.*;
 import com.ilko.tournament.service.impl.TournamentService;
 import com.ilko.tournament.exception.BusinessException;
 import com.ilko.tournament.exception.UnauthorizedOperationException;
+import com.ilko.tournament.exception.ConflictException;
+import com.ilko.tournament.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
@@ -27,7 +29,10 @@ class TournamentServiceTest {
     @Mock NotificationRepository notifications;
     @Mock TournamentGroupRepository groups;
     @org.mockito.Spy BracketGenerator bracketGenerator = new BracketGenerator();
+    @org.mockito.Spy DoubleEliminationGenerator doubleEliminationGenerator = new DoubleEliminationGenerator();
     @org.mockito.Spy RankingCalculator rankingCalculator = new RankingCalculator();
+    @org.mockito.Spy RoundRobinScheduler roundRobinScheduler = new RoundRobinScheduler();
+    @org.mockito.Spy TournamentStatisticsCalculator statisticsCalculator = new TournamentStatisticsCalculator();
     @InjectMocks TournamentService service;
 
     @Test void generatesCompleteSevenParticipantBracketWithOneBye() {
@@ -88,6 +93,7 @@ class TournamentServiceTest {
         group.setTournament(tournament);
         group.setName("Group A");
         group.getParticipants().addAll(tournament.getParticipants());
+        tournament.getParticipants().forEach(participant -> participant.setGroup(group));
         when(tournaments.findById(1L)).thenReturn(Optional.of(tournament));
         when(groups.findByTournamentIdOrderByNameAsc(1L)).thenReturn(List.of(group));
         lenient().when(matches.existsByTournamentId(1L)).thenReturn(false);
@@ -114,8 +120,8 @@ class TournamentServiceTest {
             return tournament;
         });
 
-        TournamentResponse elimination = service.create(new CreateTournamentRequest("Elimination Cup", "Cup", TournamentFormat.ELIMINATION, LocalDate.now().plusDays(2), LocalDate.now().plusDays(5)), organizer());
-        TournamentResponse groups = service.create(new CreateTournamentRequest("Group Cup", "Cup", TournamentFormat.GROUPS, LocalDate.now().plusDays(7), LocalDate.now().plusDays(10)), organizer());
+        TournamentResponse elimination = service.create(new CreateTournamentRequest("Elimination Cup", "Cup", TournamentFormat.ELIMINATION, LocalDate.now().plusDays(2), LocalDate.now().plusDays(5), false), organizer());
+        TournamentResponse groups = service.create(new CreateTournamentRequest("Group Cup", "Cup", TournamentFormat.GROUPS, LocalDate.now().plusDays(7), LocalDate.now().plusDays(10), false), organizer());
 
         assertEquals(TournamentFormat.ELIMINATION.name(), elimination.format());
         assertEquals(TournamentFormat.GROUPS.name(), groups.format());
@@ -334,13 +340,6 @@ class TournamentServiceTest {
         when(groups.findById(10L)).thenReturn(Optional.of(firstGroup));
         when(groups.findById(11L)).thenReturn(Optional.of(secondGroup));
         when(participants.findById(1L)).thenReturn(Optional.of(participant));
-        // Reflects the participant's real current group at call time (mirrors what the real
-        // O(1) repository query would return), instead of scanning every group in application code.
-        when(groups.findByTournamentIdAndParticipantsId(1L, 1L)).thenAnswer(inv -> {
-            if (firstGroup.getParticipants().contains(participant)) return Optional.of(firstGroup);
-            if (secondGroup.getParticipants().contains(participant)) return Optional.of(secondGroup);
-            return Optional.empty();
-        });
 
         assertEquals("Group A", service.createGroup(1L, new CreateGroupRequest(" Group A "), organizer()).name());
         service.assignParticipant(1L, 10L, 1L, organizer());
@@ -408,6 +407,175 @@ class TournamentServiceTest {
         assertThrows(BusinessException.class, () -> service.delete(1L, organizer()));
 
         verify(tournaments, never()).delete(any());
+    }
+
+    // ===================== PARTICIPANT SELF-SERVICE =====================
+
+    @Test void participantJoinsWithTheirOwnAccountAndCannotJoinTwice() {
+        Tournament tournament = tournament(1);
+        AppUser account = new AppUser(); account.setUsername("georgi");
+        when(tournaments.findById(1L)).thenReturn(Optional.of(tournament));
+        when(users.findByUsername("georgi")).thenReturn(Optional.of(account));
+        when(participants.save(any())).thenAnswer(inv -> { Participant p = inv.getArgument(0); p.setId(50L); return p; });
+        var georgi = new TestingAuthenticationToken("georgi", "password", "ROLE_PARTICIPANT");
+
+        ParticipantResponse joined = service.join(1L, new JoinTournamentRequest(" "), georgi);
+
+        assertEquals("georgi", joined.name(), "A blank display name falls back to the username");
+        assertEquals("georgi", joined.linkedUsername());
+        assertThrows(ConflictException.class, () -> service.join(1L, new JoinTournamentRequest("Another name"), georgi));
+        verify(participants, times(1)).save(any());
+    }
+
+    @Test void joiningIsRejectedOnceRegistrationIsClosed() {
+        Tournament tournament = tournament(2);
+        tournament.setStatus(TournamentStatus.IN_PROGRESS);
+        when(tournaments.findById(1L)).thenReturn(Optional.of(tournament));
+
+        assertThrows(BusinessException.class, () -> service.join(1L, null, new TestingAuthenticationToken("georgi", "password", "ROLE_PARTICIPANT")));
+        verify(participants, never()).save(any());
+    }
+
+    @Test void participantCanWithdrawOnlyTheirOwnEntry() {
+        Tournament tournament = tournament(2);
+        AppUser account = new AppUser(); account.setUsername("georgi");
+        tournament.getParticipants().get(1).setAppUser(account);
+        when(tournaments.findById(1L)).thenReturn(Optional.of(tournament));
+
+        assertThrows(ResourceNotFoundException.class, () -> service.leave(1L, new TestingAuthenticationToken("elena", "password", "ROLE_PARTICIPANT")));
+        service.leave(1L, new TestingAuthenticationToken("georgi", "password", "ROLE_PARTICIPANT"));
+
+        assertEquals(List.of("P1"), tournament.getParticipants().stream().map(Participant::getName).toList());
+    }
+
+    @Test void organizerCannotLinkTheSameAccountToTwoEntries() {
+        Tournament tournament = tournament(1);
+        AppUser account = new AppUser(); account.setUsername("georgi");
+        tournament.getParticipants().get(0).setAppUser(account);
+        when(tournaments.findById(1L)).thenReturn(Optional.of(tournament));
+        when(users.findByUsername("georgi")).thenReturn(Optional.of(account));
+
+        assertThrows(ConflictException.class, () -> service.registerParticipant(1L, new ParticipantRequest("Georgi Again", "georgi"), organizer()));
+        verify(participants, never()).save(any());
+    }
+
+    // ===================== ELIMINATION FLOW THROUGH THE SERVICE =====================
+
+    @Test void finalBecomesReadyOnlyAfterBothSemiFinalsAndTheTournamentEndsWithTheFinal() {
+        Tournament tournament = tournament(4);
+        List<TournamentMatch> persisted = new ArrayList<>();
+        when(tournaments.findById(1L)).thenReturn(Optional.of(tournament));
+        when(matches.existsByTournamentId(1L)).thenReturn(false);
+        when(matches.saveAll(any())).thenAnswer(inv -> {
+            for (Object item : (Iterable<?>) inv.getArgument(0)) {
+                TournamentMatch m = (TournamentMatch) item;
+                if (m.getId() == null) { m.setId(100L + persisted.size()); persisted.add(m); }
+            }
+            return inv.getArgument(0);
+        });
+        when(tournaments.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        service.generateBracket(1L, organizer());
+        when(matches.findById(any())).thenAnswer(inv -> persisted.stream().filter(m -> m.getId().equals(inv.getArgument(0))).findFirst());
+        when(matches.findByTournamentIdOrderByRoundNumberAscMatchNumberAsc(1L)).thenReturn(persisted);
+        TournamentMatch semiOne = find(persisted, 1, 1), semiTwo = find(persisted, 1, 2), finalMatch = find(persisted, 2, 1);
+
+        service.result(semiOne.getId(), new MatchResultRequest(1, 3), organizer()); // P4 beats seed 1
+        assertEquals(MatchStatus.PENDING, finalMatch.getStatus(), "The final still waits for the other semi-final");
+        assertEquals(TournamentStatus.IN_PROGRESS, tournament.getStatus());
+
+        service.result(semiTwo.getId(), new MatchResultRequest(2, 0), organizer());
+        assertEquals(MatchStatus.READY, finalMatch.getStatus());
+        assertEquals("P4", finalMatch.getParticipant1().getName());
+        assertEquals("P2", finalMatch.getParticipant2().getName());
+
+        service.result(finalMatch.getId(), new MatchResultRequest(0, 5), organizer());
+        assertEquals(TournamentStatus.COMPLETED, tournament.getStatus());
+        assertEquals("P2", service.rankings(1L).get(0).participant());
+    }
+
+    private TournamentMatch find(List<TournamentMatch> list, int round, int number) { return list.stream().filter(m -> m.getRoundNumber() == round && m.getMatchNumber() == number).findFirst().orElseThrow(); }
+
+
+    // --- double elimination ---
+
+    @Test void generatesWinnersLosersAndGrandFinalForADoubleEliminationTournament() {
+        Tournament tournament = doubleElimination(8, true);
+        List<TournamentMatch> persisted = wireBracketRepository(tournament);
+
+        List<MatchResponse> bracket = service.generateBracket(1L, organizer());
+
+        assertEquals(15, bracket.size(), "14 bracket matches plus the deciding rematch");
+        assertEquals(7, bracket.stream().filter(m -> "WINNERS".equals(m.bracket())).count());
+        assertEquals(6, bracket.stream().filter(m -> "LOSERS".equals(m.bracket())).count());
+        assertEquals(2, bracket.stream().filter(m -> "GRAND_FINAL".equals(m.bracket())).count());
+        assertEquals(TournamentStatus.IN_PROGRESS, tournament.getStatus());
+        // Later rounds are written first so next_match_id / next_loser_match_id always resolve.
+        assertTrue(persisted.get(0).getRoundNumber() >= persisted.get(persisted.size() - 1).getRoundNumber());
+    }
+
+    @Test void aFirstRoundLoserContinuesInTheLosersBracket() {
+        Tournament tournament = doubleElimination(4, false);
+        List<TournamentMatch> persisted = wireBracketRepository(tournament);
+        service.generateBracket(1L, organizer());
+        when(matches.findById(any())).thenAnswer(inv -> persisted.stream().filter(m -> inv.getArgument(0).equals(m.getId())).findFirst());
+        when(matches.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        TournamentMatch opener = persisted.stream().filter(m -> m.getRoundNumber() == 1 && m.getMatchNumber() == 1).findFirst().orElseThrow();
+        Participant beaten = opener.getParticipant2();
+        service.result(opener.getId(), new MatchResultRequest(3, 1), organizer());
+
+        // persisted is in save order (later rounds first), so pick the first losers round explicitly.
+        TournamentMatch losersOpener = persisted.stream().filter(m -> m.getBracket() == BracketSide.LOSERS)
+                .min(Comparator.comparingInt(TournamentMatch::getRoundNumber).thenComparingInt(TournamentMatch::getMatchNumber)).orElseThrow();
+        assertSame(beaten, losersOpener.getParticipant1(), "The loser drops into the losers bracket instead of being eliminated");
+        assertNotEquals(MatchStatus.COMPLETED, losersOpener.getStatus());
+    }
+
+    @Test void rejectsADrawInDoubleEliminationJustLikeInSingleElimination() {
+        Tournament tournament = doubleElimination(4, false);
+        List<TournamentMatch> persisted = wireBracketRepository(tournament);
+        service.generateBracket(1L, organizer());
+        when(matches.findById(any())).thenAnswer(inv -> persisted.stream().filter(m -> inv.getArgument(0).equals(m.getId())).findFirst());
+
+        TournamentMatch opener = persisted.stream().filter(m -> m.getStatus() == MatchStatus.READY).findFirst().orElseThrow();
+        assertThrows(BusinessException.class, () -> service.result(opener.getId(), new MatchResultRequest(2, 2), organizer()));
+    }
+
+    @Test void theGrandFinalRematchFlagOnlyAppliesToDoubleElimination() {
+        when(users.findByUsername("organizer")).thenReturn(Optional.of(new AppUser()));
+        when(tournaments.save(any())).thenAnswer(inv -> { Tournament t = inv.getArgument(0); t.setId(1L); AppUser u = new AppUser(); u.setUsername("organizer"); t.setOrganizer(u); return t; });
+
+        var dates = new LocalDate[]{LocalDate.now().plusDays(1), LocalDate.now().plusDays(2)};
+        assertTrue(service.create(new CreateTournamentRequest("Cup", null, TournamentFormat.DOUBLE_ELIMINATION, dates[0], dates[1], true), organizer()).grandFinalReset());
+        assertFalse(service.create(new CreateTournamentRequest("Cup", null, TournamentFormat.ELIMINATION, dates[0], dates[1], true), organizer()).grandFinalReset());
+        assertFalse(service.create(new CreateTournamentRequest("Cup", null, TournamentFormat.GROUPS, dates[0], dates[1], true), organizer()).grandFinalReset());
+    }
+
+    /** Stores generated matches in a list and serves them back with ids, the way the repository would. */
+    private List<TournamentMatch> wireBracketRepository(Tournament tournament) {
+        List<TournamentMatch> persisted = new ArrayList<>();
+        when(tournaments.findById(1L)).thenReturn(Optional.of(tournament));
+        lenient().when(matches.existsByTournamentId(1L)).thenReturn(false);
+        lenient().when(matches.saveAll(any())).thenAnswer(inv -> {
+            long id = persisted.size() + 100L;
+            for (Object item : (Iterable<?>) inv.getArgument(0)) {
+                TournamentMatch match = (TournamentMatch) item;
+                if (match.getId() == null) match.setId(id++);
+                persisted.add(match);
+            }
+            return inv.getArgument(0);
+        });
+        lenient().when(tournaments.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(matches.findByTournamentIdOrderByRoundNumberAscMatchNumberAsc(1L)).thenAnswer(inv ->
+                persisted.stream().sorted(Comparator.comparingInt(TournamentMatch::getRoundNumber).thenComparingInt(TournamentMatch::getMatchNumber)).toList());
+        return persisted;
+    }
+
+    private Tournament doubleElimination(int count, boolean grandFinalReset) {
+        Tournament tournament = tournament(count);
+        tournament.setFormat(TournamentFormat.DOUBLE_ELIMINATION);
+        tournament.setGrandFinalReset(grandFinalReset);
+        return tournament;
     }
 
     private Tournament tournament(int count) { Tournament t = new Tournament(); t.setId(1L); t.setName("Test"); t.setFormat(TournamentFormat.ELIMINATION); t.setStatus(TournamentStatus.REGISTRATION); t.setStartDate(LocalDate.now()); t.setEndDate(LocalDate.now().plusDays(1)); AppUser u = new AppUser(); u.setUsername("organizer"); t.setOrganizer(u); for (int i=1;i<=count;i++) { Participant p=new Participant(); p.setId((long)i); p.setName("P"+i); p.setTournament(t); t.getParticipants().add(p); } return t; }

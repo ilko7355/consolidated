@@ -26,5 +26,6 @@ public class TournamentGroup {
     private String name;
 
     @OneToMany(mappedBy = "group", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @OrderBy("id ASC")
     private List<Participant> participants = new ArrayList<>();
 }

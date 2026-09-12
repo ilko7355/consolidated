@@ -8,6 +8,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.servlet.NoHandlerFoundException;
@@ -48,6 +49,11 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	ResponseEntity<ErrorResponse> malformedRequest(HttpMessageNotReadableException exception, HttpServletRequest request) {
 		return response(HttpStatus.BAD_REQUEST, "Request body is invalid", request);
+	}
+
+	@ExceptionHandler(DisabledException.class)
+	ResponseEntity<ErrorResponse> disabledAccount(DisabledException exception, HttpServletRequest request) {
+		return response(HttpStatus.FORBIDDEN, "This account has been blocked by an administrator", request);
 	}
 
 	@ExceptionHandler(AuthenticationException.class)

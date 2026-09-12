@@ -1,243 +1,270 @@
 # Tournament Platform
 
-Tournament Platform is a client-server application for organizing tournaments. Organizers create tournaments, register participants, generate elimination brackets, record results, and receive notifications. Authenticated users can browse tournament data and rankings.
+Enterprise platform for organizing sports and esports tournaments, built with Java 17 and Spring Boot.
+Organizers create tournaments in **elimination**, **double-elimination** or **group-stage** format and register
+participants (or let participants join themselves). The platform generates a seeded bracket or a round-robin
+schedule automatically, moves winners to the next round as results are entered - and in double elimination moves
+the losers into a losers bracket instead of eliminating them - keeps live standings and statistics, and notifies
+people about upcoming matches and final results. Administrators manage accounts and roles.
 
-The application does not implement group-tournament scheduling. `GROUPS` can be stored as a format, but bracket generation is implemented only for `ELIMINATION` tournaments.
+Individual practical project, 11th grade - PGKNMA "Prof. Minko Balkanski", Stara Zagora. Author: Iliya Dimitrov Vlahov.
 
-## Technology Stack
+## Features by module
 
-- Java 25
-- Spring Boot 3.4.5
-- Spring Web MVC
-- Spring Data JPA and Hibernate
-- MySQL Connector/J
-- Spring Security
-- Jakarta Bean Validation
-- Lombok
-- Maven Wrapper
-- JUnit 5, Mockito, and MockMvc
-- Plain HTML, CSS, and browser JavaScript
+| Module | What it does |
+| --- | --- |
+| Tournaments | Create, edit and delete tournaments (elimination, double elimination or groups); registration lifecycle `REGISTRATION -> IN_PROGRESS -> COMPLETED`. |
+| Participants | Organizers register participants or teams and can link them to user accounts; participants can join and withdraw themselves while registration is open. |
+| Bracket | Standard seeding (1 v 8, 4 v 5, 2 v 7, 3 v 6 ...), BYEs for the top seeds when the count is not a power of two, automatic advancement of winners, live bracket view. |
+| Double elimination | A defeat drops a participant into the losers bracket; only a second defeat eliminates. Winners bracket, losers bracket and grand final are shown as three linked blocks. The organizer chooses per tournament whether the grand final is followed by a deciding rematch when the losers-bracket finalist wins it. |
+| Groups | Groups with manual assignment and a round-robin schedule (circle method) - nobody plays twice in one round. |
+| Results | Organizers enter scores; knockout matches (both elimination formats) must have a winner, group matches may end in a draw. |
+| Rankings & statistics | Standings (played, wins, draws, losses, score difference, points), champion and podium, top scorer, biggest win, progress. |
+| Notifications | Upcoming-match notifications for both players and the organizer, result notifications for the organizer, final results for everyone involved. |
+| Administration | Platform overview, user list, role changes, blocking and unblocking accounts. |
 
-The frontend has no Node.js, React, TypeScript, Vite, or npm build step. `package-lock.json` is not used by the application.
+## Technology stack
+
+- Java 17, Spring Boot 3.4.5 (Spring Web MVC, Spring Data JPA / Hibernate, Spring Security, Bean Validation)
+- MySQL 8 (MySQL Connector/J)
+- Lombok, Maven Wrapper
+- JUnit 5, Mockito, MockMvc, Spring Security Test
+- Browser client: plain HTML, CSS and JavaScript (no framework, no build step), Playwright for optional UI checks
 
 ## Requirements
 
-- JDK 25 or newer
-- MySQL 8.0 or compatible MySQL server
-- Node.js 18 or newer, only if using the optional `npx http-server` command
-- PowerShell on Windows, or an equivalent shell
+- JDK 17 or newer (`java -version`)
+- MySQL 8.0 server running locally
+- Node.js 18 or newer - for the one-command runner (`node dev.js`), the static client server and the optional e2e scripts
+
+The Maven Wrapper downloads Maven and all libraries on the first build; no global Maven installation is needed.
+
+## 1. Configure the database
+
+The application creates the `tournament_platform` database on first start (`createDatabaseIfNotExist=true`)
+and the tables through Hibernate (`ddl-auto=update`). The MySQL account only needs permission to create a database.
+
+Put your MySQL credentials in a git-ignored file next to `pom.xml`:
 
 ```powershell
-java -version
-mysql --version
+Copy-Item application-local.properties.example application-local.properties
+notepad application-local.properties
 ```
 
-## Database Setup
-
-Create the database with a MySQL account that has permission to create databases:
-
-```sql
-CREATE DATABASE tournament_platform CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```properties
+spring.datasource.username=root
+spring.datasource.password=your-mysql-password
 ```
 
-Configure the application with environment variables. Never commit real passwords:
+Alternatively set the environment variables `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME` and `DB_PASSWORD`.
+Values in `application-local.properties` take precedence. Never commit real passwords.
+
+## 2. Start everything with one command
 
 ```powershell
-$env:DB_HOST = "localhost"
-$env:DB_PORT = "3306"
-$env:DB_NAME = "tournament_platform"
-$env:DB_USERNAME = "your-mysql-user"
-$env:DB_PASSWORD = "your-mysql-password"
+node dev.js
 ```
 
-The JDBC URL also includes `createDatabaseIfNotExist=true`, but the MySQL account still needs suitable privileges. The default profile uses `ddl-auto=update` for local development. Production uses the `prod` profile with `ddl-auto=validate`; run the versioned scripts in `docs/migrations/` before starting it. SQL and bind-value logging should be disabled outside local development.
-
-### Versioned schema changes
-
-The project uses explicit, manually applied MySQL migrations rather than Flyway or Liquibase. The migration owner is the `docs/migrations/` directory; each file is applied once, in version order, and its result should be recorded by the deployment process. `V001__participants_tournament_relationship.sql` is the **one authoritative migration** for the participant restructuring, and is the only script that changes the schema, in every environment - local, staging, and production.
-
-The older `docs/migrate-participants-table.sql` is **deprecated as a migration**: it no longer runs any `ALTER`/`UPDATE`/`DROP` statement, so there is only one implementation of this schema change to keep in sync. It remains only as an optional, read-only diagnostic you can run against a local database **before** V001, if you still have data in the legacy `tournament_participants` join table and want to see the exact rows that need manual attention (ambiguous or missing legacy links, and name collisions that would violate the new unique constraint) rather than just a count. If your local database is empty or disposable, skip it entirely - drop the database and let the app recreate the schema on next startup.
-
-For production:
+This builds the runnable jar if it is missing, starts the backend and serves the browser client on
+`http://localhost:5173`. Output from both is prefixed (`[runner ]`, `[backend]`) and Ctrl+C stops both.
+To create the demo accounts and tournaments as well (only into a database without tournaments):
 
 ```powershell
-$env:SPRING_PROFILES_ACTIVE = "prod"
-.\mvnw.cmd spring-boot:run
+node dev.js --demo
 ```
 
-The production profile never lets Hibernate change tables. Hibernate validates the schema, while the migration scripts change it. `ParticipantSchemaGuard` remains as a focused diagnostic for participant rows that are structurally present but incomplete.
+The same two commands are available as `npm start` and `npm run demo`; there are no npm dependencies to
+install. Good to know:
 
-> **Existing local database?** The `participants` table was restructured to add a direct `tournament_id`
-> link and a case-insensitive unique constraint preventing duplicate participant names within the same
-> tournament. `ddl-auto=update` can add the new columns to a **fresh/empty** database, but cannot safely
-> add them as `NOT NULL` to a table that **already has rows** - MySQL rejects that outright, and because
-> Hibernate's schema update does not stop the app from starting even when this happens, the app can look
-> like it started fine while silently missing the columns (`ParticipantSchemaGuard` catches this at
-> startup and fails loudly with instructions, instead of letting it surface later as a confusing SQL
-> error on first participant registration). If you already have participants in a local database you
-> want to keep, run `docs/migrations/V001__participants_tournament_relationship.sql` once **before**
-> starting the app with the new code (optionally, run the read-only `docs/migrate-participants-table.sql`
-> diagnostic first if you want to inspect any legacy rows needing manual attention). If your local
-> database is empty or disposable, just drop and let the app recreate it - no manual step needed.
+- `$env:PORT = "5190"` before the command serves the client on another port.
+- If a backend already answers on port 8080, the runner reuses it and starts only the client.
+- Java is taken from `JAVA_HOME`, then from `PATH`, then from the usual JDK installation folders.
 
-## Backend
+The next two sections describe how to start the two parts separately.
 
-Run commands from the repository root, `enterprise-tournament-system`. The Maven Wrapper downloads dependencies automatically; a global Maven installation is not required.
-
-Run tests:
-
-```powershell
-.\mvnw.cmd test
-```
-
-Start Spring Boot after configuring MySQL:
+## 3. Start the backend only
 
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-The API listens on `http://localhost:8080` and uses the base path `http://localhost:8080/api`.
+The REST API listens on `http://localhost:8080/api`.
 
-## Frontend
+### Demo data (recommended for presentations)
 
-The browser client is in `frontend/`. It is a dependency-free static application using stateless HTTP Basic authentication. Node.js is used only to run an optional static file server; it is not a frontend framework or application dependency.
+Start once with demo data to get ready-made accounts and one tournament in every stage - a completed
+8-player chess knockout, a live 6-team esports bracket with BYEs, a group-stage league with draws and an
+open tournament that participants can join:
+
+```powershell
+$env:DEMO_DATA = "true"
+.\mvnw.cmd spring-boot:run
+```
+
+(or add `app.demo-data=true` to `application-local.properties`). Demo data is only created into a database
+without tournaments. All demo accounts use the password `Demo12345`:
+
+| Username | Role |
+| --- | --- |
+| `admin` | Administrator (created only if no administrator exists yet) |
+| `organizer`, `coach.maria` | Organizer |
+| `georgi`, `elena`, `nikola`, `viktoria`, `stefan`, `kalina`, `martin`, `yoana`, `petar`, `desislava`, `ivan`, `radostina` | Participant |
+
+Never enable demo data on a real deployment.
+
+### First administrator without demo data
+
+Public registration only creates participants and organizers. The first administrator is created on startup
+from configuration, and only if no administrator exists yet:
+
+```powershell
+$env:ADMIN_USERNAME = "admin"
+$env:ADMIN_EMAIL = "admin@example.com"
+$env:ADMIN_PASSWORD = "choose-a-strong-password"
+.\mvnw.cmd spring-boot:run
+```
+
+The password is stored as a BCrypt hash. Further administrators are appointed from the Administration page.
+
+## 4. Start the client only
 
 In a second terminal:
 
 ```powershell
 cd frontend
-npx --yes http-server . -p 5173
+node server.js
 ```
 
-Open `http://localhost:5173`. The default API is `http://localhost:8080/api`. To use another API, define this before `app.js` in `frontend/index.html`:
+Open `http://localhost:5173`. The client calls `http://localhost:8080/api` by default; to use another API,
+define `window.__API_URL__` before `app.js` in `frontend/index.html`. Credentials are kept in memory only, so
+reloading the page signs you out.
 
-```html
-<script>window.__API_URL__ = 'https://host.example/api';</script>
-<script src="app.js"></script>
-```
+## Basic usage
 
-There is no frontend production build command. Serve the `frontend/` directory with a static web server. Use HTTPS and configure backend CORS for deployment.
+1. Sign in as `organizer` (or register an organizer account) and create a tournament.
+2. Add participants - optionally link each one to a user account - or let participants join from the tournament page.
+3. For a group tournament create groups and assign every participant.
+4. Generate the bracket or the group matches. Registration closes and the tournament moves to *In progress*.
+5. Open a READY match on the Bracket/Matches tab and enter the score. Winners advance automatically.
+6. Follow Standings and Results & stats; the tournament completes itself after the last match and everyone involved is notified.
+7. Participants see their own matches under *My matches*; administrators manage accounts under *Administration*.
 
-## Basic Usage
-
-1. Start MySQL and set the database environment variables.
-2. Start the backend with `.\mvnw.cmd spring-boot:run`.
-3. Start the frontend server on port 5173.
-4. Register an account. Set `organizer` to `true` to create an organizer account.
-5. Sign in. Credentials are kept in runtime memory and are not restored after page reload.
-6. An organizer creates a tournament, adds participants, generates an elimination bracket, and records results.
-7. Authenticated users can view tournament reports and rankings. Organizers can view their notifications.
-
-## Roles and Permissions
+## Roles and permissions
 
 | Role | Permissions |
 | --- | --- |
-| `PARTICIPANT` | View tournaments, participants, brackets, results, rankings, and their own notifications. Cannot perform tournament or match mutations. |
-| `ORGANIZER` | All `PARTICIPANT` permissions; create tournaments; update/delete owned registration-stage tournaments; add participants; generate owned elimination brackets; record owned match results. |
-| `ADMINISTRATOR` | Authenticated reads and authorized tournament mutations for **any** tournament, regardless of who organizes it. |
+| `PARTICIPANT` | View tournaments, brackets, standings, results and statistics; join and withdraw during registration; *My matches*; own notifications. |
+| `ORGANIZER` | Everything a participant can view; create tournaments; for **own** tournaments: edit/delete during registration, register participants, manage groups, generate matches, enter results. |
+| `ADMINISTRATOR` | Organizer rights for **any** tournament; platform overview; list users, change roles, block and unblock accounts (never their own). |
 
-Backend role checks and service-layer ownership checks enforce these permissions. Frontend controls are not a security boundary.
+Every rule is enforced by the backend - URL rules and `@PreAuthorize` checks for roles, service-layer checks for
+ownership and tournament state. The frontend only hides actions that would be rejected anyway.
 
-### Creating an administrator account
+## REST API
 
-There is no public sign-up option for `ADMINISTRATOR` - registration only ever creates `ORGANIZER` or
-`PARTICIPANT` accounts, by design (a public administrator sign-up would be a security hole).
+All endpoints except authentication require `Authorization: Basic ...`. Errors share one JSON shape:
+`timestamp`, `status`, `error`, `message`, `path` - never stack traces or SQL.
 
-Instead, the very first administrator is bootstrapped automatically on application startup from
-configuration. Set these before starting the app:
-
-```bash
-export ADMIN_USERNAME=admin
-export ADMIN_EMAIL=admin@example.com
-export ADMIN_PASSWORD=choose-a-strong-password
-```
-
-On startup, `AdminAccountInitializer` creates this account (with the password securely hashed through
-the same `PasswordEncoder` used everywhere else) **only if no administrator account exists yet**. It is
-safe to leave these variables set permanently - after the first admin is created, the initializer does
-nothing on every subsequent restart. If the variables are left unset, no administrator is created and a
-log message explains how to configure one.
-
-## REST API Overview
-
-Authentication:
-
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-
-Tournaments:
-
-- `GET /api/tournaments`
-- `POST /api/tournaments`
-- `GET /api/tournaments/{id}`
-- `PUT /api/tournaments/{id}`
-- `DELETE /api/tournaments/{id}`
-- `GET /api/tournaments/{id}/participants`
-- `POST /api/tournaments/{id}/participants`
-- `GET /api/tournaments/{id}/groups`
-- `POST /api/tournaments/{id}/groups`
-- `PUT /api/tournaments/{id}/groups/{groupId}/participants/{participantId}`
-- `DELETE /api/tournaments/{id}/groups/{groupId}/participants/{participantId}`
-- `GET /api/tournaments/{id}/bracket`
-- `POST /api/tournaments/{id}/generate-bracket`
-- `GET /api/tournaments/{id}/rankings`
-- `GET /api/tournaments/{id}/results`
-
-Matches and notifications:
-
-- `POST /api/matches/{id}/result`
-- `GET /api/notifications?unread=true|false`
-- `PUT /api/notifications/{id}/read`
-
-Protected endpoints require an `Authorization: Basic ...` header. Errors use `timestamp`, `status`, `error`, `message`, and `path` fields without stack traces or database details.
+| Method | Endpoint | Access |
+| --- | --- | --- |
+| POST | `/api/auth/register`, `/api/auth/login` | public |
+| GET | `/api/tournaments`, `/api/tournaments/{id}` | authenticated |
+| POST | `/api/tournaments` | organizer, admin |
+| PUT / DELETE | `/api/tournaments/{id}` | owner, admin |
+| GET / POST | `/api/tournaments/{id}/participants` | authenticated / owner, admin |
+| POST / DELETE | `/api/tournaments/{id}/join` | participant |
+| GET / POST | `/api/tournaments/{id}/groups` | authenticated / owner, admin |
+| PUT / DELETE | `/api/tournaments/{id}/groups/{groupId}/participants/{participantId}` | owner, admin |
+| POST | `/api/tournaments/{id}/generate-bracket` | owner, admin |
+| GET | `/api/tournaments/{id}/bracket`, `/rankings`, `/results`, `/statistics` | authenticated |
+| GET | `/api/matches/mine` | authenticated |
+| POST | `/api/matches/{id}/result` | owner, admin |
+| GET | `/api/notifications?unread=true\|false` | authenticated (own) |
+| PUT | `/api/notifications/{id}/read`, `/api/notifications/read-all` | authenticated (own) |
+| GET | `/api/admin/overview`, `/api/admin/users` | admin |
+| PUT | `/api/admin/users/{id}/role`, `/api/admin/users/{id}/status` | admin |
 
 ## Architecture
 
 ```text
-Browser client -> REST controllers -> service interfaces and implementations
-                                      -> repositories -> JPA entities -> MySQL
+Browser client (HTML/CSS/JS)
+   |  JSON over HTTP, HTTP Basic
+   v
+Spring Security filter chain  ->  REST controllers  ->  service interfaces / implementations
+                                                          |-> BracketGenerator, RoundRobinScheduler,
+                                                          |   RankingCalculator, TournamentStatisticsCalculator
+                                                          v
+                                                   Spring Data repositories -> JPA entities -> MySQL
 ```
 
-Controllers handle HTTP binding, validation, authorization annotations, and response status. Services contain business rules, transactions, ownership checks, orchestration, and notifications. Repositories handle persistence. DTOs and `TournamentMapper` separate API contracts from entities. `BracketGenerator` and `RankingCalculator` contain deterministic, unit-testable algorithms.
+Controllers bind and validate requests and declare role requirements. Services hold business rules, transactions,
+ownership checks and notifications. The algorithms are separate Spring components without database access, so they
+are unit-tested directly. DTO records and mappers keep entities (and password hashes) out of the API.
 
-## Database Model
+The algorithms, business rules and the ER diagram are described in [docs/business-rules.md](docs/business-rules.md).
 
-Major tables are `app_users`, `tournaments`, `participants`, `tournament_participants`, `tournament_matches`, and `notifications`. Numeric IDs are generated by the database except for the composite bridge key. Foreign keys connect organizers, tournament membership, match participants/winners/next matches, and notification recipients. Relationships are lazy and remove cascading is avoided because participants are reusable. See [business-rules.md](docs/business-rules.md) for the ER diagram and rule details.
-
-## Project Structure
+## Project structure
 
 ```text
+dev.js               one-command runner: backend + client
+package.json         npm scripts only, no dependencies
 src/main/java/com/ilko/tournament/
-  controller/   REST endpoints
-  service/      service contracts and business algorithms
-  service/impl/ service implementations and transactions
-  repository/   Spring Data persistence interfaces
-  entity/       JPA database entities
-  dto/          request and response API records
-  mapper/       entity-to-response mapping
-  security/     Spring Security and user loading
-  exception/    centralized API error handling
-frontend/       static browser client
-docs/           architecture, business rules, testing, and NFR documentation
-src/test/       unit, validation, security, and MockMvc tests
+  config/       startup: schema guard, first administrator, demo data, authentication manager
+  controller/   REST endpoints (auth, tournaments, matches, notifications, admin)
+  dto/          request/response records with validation annotations
+  entity/       JPA entities: AppUser, Tournament, Participant, TournamentGroup, TournamentMatch, Notification
+  enums/        roles, formats and statuses
+  exception/    business exceptions and the global JSON error handler
+  mapper/       entity -> DTO mapping
+  repository/   Spring Data JPA repositories
+  security/     Spring Security configuration and user loading
+  service/      service interfaces and the algorithms (bracket, round robin, rankings, statistics)
+  service/impl/ service implementations
+src/main/resources/  application.properties, application-prod.properties
+src/test/java/       unit, algorithm, service, security (MockMvc) and optional MySQL integration tests
+frontend/            browser client and a dependency-free static server
+e2e/                 optional Playwright checks of the notification UI against a mocked API
+docs/                business rules, testing strategy, non-functional review, SQL migrations
 ```
 
 ## Testing
-
-Run the complete suite:
 
 ```powershell
 .\mvnw.cmd test
 ```
 
-The suite covers authentication, authorization, ownership, CRUD API contracts, standard error statuses, DTO validation, duplicate data, invalid lifecycle states, bracket generation, BYE handling, and deterministic rankings. The current suite is unit and MockMvc based; real-MySQL schema, transaction, concurrency, and load tests require a configured integration environment.
+The suite covers the bracket algorithm (seeding, BYEs, advancement, complete random tournaments for 2-64
+participants), round-robin scheduling, rankings, statistics, the tournament service (lifecycle, ownership,
+registration, joining, groups, results, notifications), administration rules, request validation and HTTP
+security (401/403/400/404/409). See [docs/testing-strategy.md](docs/testing-strategy.md).
 
-See [testing-strategy.md](docs/testing-strategy.md) for the test matrix, [business-rules.md](docs/business-rules.md) for business logic, and [non-functional-review.md](docs/non-functional-review.md) for evidence-based quality findings.
+Optional real-MySQL integration tests run only when `TEST_DB_USERNAME` and `TEST_DB_PASSWORD` are set
+(database `tournament_platform_test` by default); otherwise they are reported as skipped.
 
-## Security and Deployment Notes
+Optional browser check of the notification UI (mocked API, no backend needed):
 
-- Passwords are stored as BCrypt hashes.
-- HTTP Basic must be transported over HTTPS in deployment.
-- Authentication is stateless and credentials are not persisted by the frontend.
-- Local CORS origins are configured for development; production origins must be explicitly configured.
-- Development schema auto-update and SQL bind logging must not be used unchanged in production.
+```powershell
+npm install playwright
+npx playwright install chromium
+node e2e/server.js     # terminal 1, serves frontend/ on port 5500
+node e2e/verify.js     # terminal 2
+```
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+| --- | --- |
+| `Access denied for user` on startup | Wrong MySQL credentials - check `application-local.properties`. |
+| `Unable to establish loopback connection` / `Invalid argument: connect` when Tomcat starts (Windows) | Java 17 creates a local socket file in `%TEMP%`; it fails when that path is very long or contains non-Latin characters (for example a Cyrillic Windows user name). `node dev.js` sets a short folder automatically; when starting the backend by hand use `.\mvnw.cmd spring-boot:run "-Dspring-boot.run.jvmArguments=-Djdk.net.unixdomain.tmpdir=C:\Temp"` (create `C:\Temp` first), or `java -Djdk.net.unixdomain.tmpdir=C:\Temp -jar target\tournament-platform-0.0.1-SNAPSHOT.jar`. |
+| `Port 8080 was already in use` | Stop the other process or start with `SERVER_PORT=8081` and set `window.__API_URL__` in the frontend accordingly. |
+| Frontend shows "Unable to reach the server" | The backend is not running, or runs on another port than `window.__API_URL__`. |
+| Demo data did not appear | It is only created when the database has no tournaments; use an empty database (`DB_NAME`) to seed again. |
+| `Data truncated for column 'format'` | A database created before double elimination existed: MySQL stores `format` as a native `ENUM` and `ddl-auto=update` never widens one. On startup `TournamentFormatSchemaGuard` fixes this automatically and logs it; in production (`ddl-auto=validate`) run `docs/migrations/2026-09-double-elimination.sql` instead. |
+
+## Production notes
+
+- Run with `SPRING_PROFILES_ACTIVE=prod`: Hibernate only validates the schema, and the versioned scripts in
+  `docs/migrations/` are applied beforehand.
+- HTTP Basic must only be used over HTTPS; configure the allowed CORS origins for the real frontend host.
+- Passwords are stored as BCrypt hashes; SQL logging is off by default (`SHOW_SQL=true` enables it locally).
+- Keep `app.demo-data` disabled.

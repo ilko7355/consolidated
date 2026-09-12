@@ -6,9 +6,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
+import java.util.List;
 
 @RestController @RequestMapping("/api/matches") @RequiredArgsConstructor
 public class MatchController {
     private final TournamentServiceApi service;
+    @GetMapping("/mine") public List<PlayerMatchResponse> mine(Authentication authentication) { return service.myMatches(authentication); }
     @PostMapping("/{id}/result") @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('ORGANIZER', 'ADMINISTRATOR')") public MatchResponse result(@PathVariable Long id, @Valid @RequestBody MatchResultRequest request, Authentication authentication) { return service.result(id, request, authentication); }
 }

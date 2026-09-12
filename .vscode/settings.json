@@ -1,10 +1,12 @@
 {
+    // Forward slashes are valid in VS Code settings on Windows and avoid backslash escaping.
     "java.configuration.runtimes": [
         {
-            "name": "JavaSE-25",
-            "path": "C:\\Users\\PC\\.jdk\\jdk-25.0.2",
+            "name": "JavaSE-17",
+            "path": "C:/Program Files/Eclipse Adoptium/jdk-17.0.20.101-hotspot",
             "default": true
         }
     ],
-    "java.jdt.ls.java.home": "C:\\Users\\PC\\.jdk\\jdk-25.0.2"
+    "java.jdt.ls.java.home": "C:/Program Files/Eclipse Adoptium/jdk-17.0.20.101-hotspot",
+    "java.configuration.updateBuildConfiguration": "automatic"
 }

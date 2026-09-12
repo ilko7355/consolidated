@@ -8,4 +8,5 @@ import java.time.LocalDate;
 									   @Size(max = 2000, message = "Description must be at most 2000 characters") String description,
 									   @NotNull(message = "Tournament format is required") TournamentFormat format,
 									   @NotNull(message = "Start date is required") @FutureOrPresent(message = "Start date cannot be in the past") LocalDate startDate,
-									   @NotNull(message = "End date is required") LocalDate endDate) { }
+									   @NotNull(message = "End date is required") LocalDate endDate,
+									   boolean grandFinalReset) { }

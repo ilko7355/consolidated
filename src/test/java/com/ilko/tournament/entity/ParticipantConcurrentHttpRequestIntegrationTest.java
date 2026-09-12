@@ -61,6 +61,7 @@ class ParticipantConcurrentHttpRequestIntegrationTest {
         registry.add("spring.datasource.username", () -> env("TEST_DB_USERNAME", ""));
         registry.add("spring.datasource.password", () -> env("TEST_DB_PASSWORD", ""));
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "update");
+        registry.add("app.demo-data", () -> "false");
     }
 
     static boolean mysqlTestDatabaseConfigured() {

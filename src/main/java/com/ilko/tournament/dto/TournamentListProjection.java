@@ -11,4 +11,5 @@ import java.time.LocalDate;
  * populates this projection never loads {@code Participant} entities into memory.
  */
 public record TournamentListProjection(Long id, String name, String description, TournamentFormat format,
-        TournamentStatus status, LocalDate startDate, LocalDate endDate, String organizer, long participantCount) { }
+        TournamentStatus status, LocalDate startDate, LocalDate endDate, String organizer, long participantCount,
+        boolean grandFinalReset) { }

@@ -5,11 +5,15 @@ import com.ilko.tournament.entity.Notification;
 import com.ilko.tournament.entity.Tournament;
 import com.ilko.tournament.entity.TournamentMatch;
 import com.ilko.tournament.enums.NotificationType;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
+    @EntityGraph(attributePaths = {"tournament", "match", "match.participant1", "match.participant2"})
     List<Notification> findByRecipientUsernameOrderByCreatedAtDesc(String username);
+
+    @EntityGraph(attributePaths = {"tournament", "match", "match.participant1", "match.participant2"})
     List<Notification> findByRecipientUsernameAndReadStatusFalseOrderByCreatedAtDesc(String username);
 
     /** Prevents sending the same "upcoming match" notification to the same person twice for the same match. */

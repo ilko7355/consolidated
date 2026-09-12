@@ -24,7 +24,7 @@ import java.util.Set;
  * Points (3 per win, 1 per draw, 0 per loss) are reported alongside the standings but are not
  * themselves the sort key - wins remain the primary ranking criterion, unchanged by this.
  *
- * ELIMINATION ranking order additionally sorts first by how far each participant progressed
+ * ELIMINATION and DOUBLE_ELIMINATION ranking order additionally sorts first by how far each participant progressed
  * in the bracket (round reached before elimination, or "champion" for the winner of the final),
  * before falling back to the same wins / score-difference / id tie-break used for GROUPS. This
  * progression tier is derived entirely from the round number and winner already stored on each
@@ -80,7 +80,10 @@ public class RankingCalculator {
             }
         }
 
-        boolean isElimination = tournament.getFormat() == TournamentFormat.ELIMINATION;
+        // Both knockout formats rank by how far a participant got. Double-elimination round numbers are
+        // allocated so that losers rounds follow the winners rounds, so "the later you lost, the better you
+        // placed" holds there too - a participant is only out after their second loss, in the losers bracket.
+        boolean isElimination = tournament.getFormat() != TournamentFormat.GROUPS;
         Map<Long, Integer> progression = isElimination ? eliminationProgression(stats.keySet(), matches) : Map.of();
 
         List<Long> ordered = stats.keySet().stream()

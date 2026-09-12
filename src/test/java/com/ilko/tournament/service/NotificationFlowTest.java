@@ -124,8 +124,6 @@ class NotificationFlowTest {
         Participant alice = participant(1L, "Alice", aliceAccount);
         Participant bob = participant(2L, "Bob", bobAccount);
         Tournament tournament = tournament(organizerAccount, alice, bob);
-        tournament.setStatus(TournamentStatus.IN_PROGRESS);
-
         List<TournamentMatch> persisted = generateBracket(tournament);
         reset(notifications); // ignore the "upcoming match" notifications from bracket generation
         TournamentMatch match = persisted.get(0);
@@ -150,8 +148,6 @@ class NotificationFlowTest {
         Participant p1 = participant(1L, "P1", p1Account), p2 = participant(2L, "P2", p2Account);
         Participant p3 = participant(3L, "P3", p3Account), p4 = participant(4L, "P4", p4Account);
         Tournament tournament = tournament(organizerAccount, p1, p2, p3, p4);
-        tournament.setStatus(TournamentStatus.IN_PROGRESS);
-
         List<TournamentMatch> persisted = generateBracket(tournament);
         reset(notifications);
         TournamentMatch firstRoundMatchA = persisted.stream().filter(m -> m.getRoundNumber() == 1 && m.getMatchNumber() == 1).findFirst().orElseThrow();
@@ -173,8 +169,6 @@ class NotificationFlowTest {
         Participant alice = participant(1L, "Alice", aliceAccount);
         Participant bob = participant(2L, "Bob", bobAccount);
         Tournament tournament = tournament(organizerAccount, alice, bob); // 2 participants -> single final match
-        tournament.setStatus(TournamentStatus.IN_PROGRESS);
-
         List<TournamentMatch> persisted = generateBracket(tournament);
         reset(notifications);
         TournamentMatch finalMatch = persisted.get(0);
